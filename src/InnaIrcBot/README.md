@@ -2,13 +2,13 @@
 
 Another one IRC bot in deep beta.
 
-##Usage
+## Usage
 `  	-c, --configuration <name.config> [<name1.config> ...]	Read Config`
 
 ` 	-g, --generate	[name.config]		Generate Config`
 
 ` 	-v, --version						Get application version`
-####Configuration settings
+#### Configuration settings
 "userNickAuthStyle": "rusnet" or "freenode"
 * rusnet - send '/nickserv IDENTIFY mySecretPass'
 * freenode - send '/msg nickserv IDENTIFY mySecretPass'
@@ -17,7 +17,7 @@ Another one IRC bot in deep beta.
 * Files - log everything to files using /yourPathSet/serverName/#chanelName_YYYY-MM-DD.txt format.
 * SQLite - use /yourPathSet/server.db (or /yourPathSet/yourFileName.db) sqlite file.
 
-##License
+## License
 Source code spreads under the GNU General Public License v3 or higher. Please see LICENSE file.
 
 Used libraries:
