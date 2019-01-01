@@ -29,7 +29,7 @@ Used libraries:
 - [ ] Documentation
 - [ ] Code refactoring
 - [ ] QA: good regression testing
-- [ ] CI/CD
+- [x] CI/CD Jenkins
 - [ ] Suppress messages from server or handle them separately from selected worker
 - [ ] Logs backend workers as threads (SQLite and co. are too slow)
 - [ ] Logs backend worker for mongodb 
