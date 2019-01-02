@@ -84,7 +84,10 @@ public class ChanelCommander implements Runnable {
         came(joinMap, who, who);
     }
     private void privmsgCame(String who, String what){
-        came(msgMap, what, who);
+        if (what.indexOf(":")+1 < what.length()){
+            what = what.substring(what.indexOf(":")+1);
+            came(msgMap, what, who);
+        }
     }
 
     private void came(HashMap<String, String[]> map, String arg1, String arg2){
