@@ -70,7 +70,7 @@ public class Connections {
                     }
             }
             if (connectionsList.isEmpty()) {
-                System.out.println("connectionsList.isEmpty()");
+                System.out.println("connectionsList is empty. Exit.");
                 break;
             }
             else {

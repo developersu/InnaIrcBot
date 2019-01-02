@@ -173,15 +173,6 @@ public class DataProvider implements Runnable {
 
         StreamProvider.writeToStream(serverName,"NICK "+this.userNick);
         StreamProvider.writeToStream(serverName,"USER "+configFile.getUserIdent()+" 8 * :"+configFile.getUserRealName());       // TODO: Add usermode 4 rusnet
-        if (!configFile.getServerPass().isEmpty())
-            StreamProvider.writeToStream(serverName,"PASS "+configFile.getServerPass());
-
-        if (!configFile.getUserNickPass().isEmpty() && (!configFile.getUserNickAuthStyle().isEmpty() && configFile.getUserNickAuthStyle().toLowerCase().equals("freenode")))
-            StreamProvider.writeToStream(serverName,"PRIVMSG NickServ :IDENTIFY "+configFile.getUserNickPass());
-        else if (!configFile.getUserNickPass().isEmpty() && (!configFile.getUserNickAuthStyle().isEmpty() && configFile.getUserNickAuthStyle().toLowerCase().equals("rusnet")))
-            StreamProvider.writeToStream(serverName,"NickServ IDENTIFY "+configFile.getUserNickPass());
-        else if (!configFile.getUserNickPass().isEmpty())
-            System.out.println("Configuration issue: Unable to determinate method of user nick identification (by password): could be \"freenode\" or \"rusnet\"\nSee \"userNickAuthStyle\".");
 
         try {
             // 431  ERR_NONICKNAMEGIVEN     how can we get this?
@@ -230,6 +221,14 @@ public class DataProvider implements Runnable {
                     StreamProvider.writeToStream(serverName,"PASS "+configFile.getServerPass());
                 }
             }
+
+            if (!configFile.getUserNickPass().isEmpty() && (!configFile.getUserNickAuthStyle().isEmpty() && configFile.getUserNickAuthStyle().toLowerCase().equals("freenode")))
+                StreamProvider.writeToStream(serverName,"PRIVMSG NickServ :IDENTIFY "+configFile.getUserNickPass());
+            else if (!configFile.getUserNickPass().isEmpty() && (!configFile.getUserNickAuthStyle().isEmpty() && configFile.getUserNickAuthStyle().toLowerCase().equals("rusnet")))
+                StreamProvider.writeToStream(serverName,"NickServ IDENTIFY "+configFile.getUserNickPass());
+            else if (!configFile.getUserNickPass().isEmpty())
+                System.out.println("Configuration issue: Unable to determinate method of user nick identification (by password): could be \"freenode\" or \"rusnet\"\nSee \"userNickAuthStyle\".");
+
         } catch (IOException e){
             System.out.println("Internal issue: DataProvider->initConnection() caused I/O exception.");
             return false;
