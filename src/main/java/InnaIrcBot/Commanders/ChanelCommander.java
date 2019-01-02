@@ -151,13 +151,13 @@ public class ChanelCommander implements Runnable {
             executiveStr.append(": ");
         }
 
-        for (int i = 1; i<messages.length; i++){
+        for (int i = 0; i < messages.length; i++){
             if ( ! messages[i].startsWith("\\"))
                 executiveStr.append(messages[i]);
             else if (messages[i].equals("\\time"))
                 executiveStr.append(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
         }
-        //System.out.println(executiveStr);                               //TODO: debug
+        //System.out.println(executiveStr.toString());                               //TODO: debug
         StreamProvider.writeToStream(server, executiveStr.toString());
     }
     private void banAction(String whom){
@@ -172,7 +172,7 @@ public class ChanelCommander implements Runnable {
         executiveStr.append(simplifyNick(whom));
         executiveStr.append(" :");
 
-        for (int i = 1; i<messages.length; i++){
+        for (int i = 0; i < messages.length; i++){
             if ( ! messages[i].startsWith("\\"))
                 executiveStr.append(messages[i]);
             else if (messages[i].equals("\\time"))
@@ -184,7 +184,7 @@ public class ChanelCommander implements Runnable {
     // TSV
     private void parse(String[] directive){
         if (directive.length >= 3 && directive[0] != null && !directive[0].startsWith("#") && directive[1] != null && directive[2] != null){
-        //System.out.println(Arrays.toString(directive));         // TODO:debug
+        // System.out.println(Arrays.toString(directive));         // TODO:debug
             switch (directive[0].toLowerCase()){
                 case "join":
                     joinMap.put(directive[1], Arrays.copyOfRange(directive, 2, directive.length));

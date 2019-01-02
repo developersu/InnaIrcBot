@@ -173,6 +173,8 @@ public class DataProvider implements Runnable {
 
         StreamProvider.writeToStream(serverName,"NICK "+this.userNick);
         StreamProvider.writeToStream(serverName,"USER "+configFile.getUserIdent()+" 8 * :"+configFile.getUserRealName());       // TODO: Add usermode 4 rusnet
+        if (!configFile.getServerPass().isEmpty())
+            StreamProvider.writeToStream(serverName,"PASS "+configFile.getServerPass());
 
         if (!configFile.getUserNickPass().isEmpty() && (!configFile.getUserNickAuthStyle().isEmpty() && configFile.getUserNickAuthStyle().toLowerCase().equals("freenode")))
             StreamProvider.writeToStream(serverName,"PRIVMSG NickServ :IDENTIFY "+configFile.getUserNickPass());
@@ -186,6 +188,7 @@ public class DataProvider implements Runnable {
             // 432  ERR_ERRONEUSNICKNAME    covered
             // 433  ERR_NICKNAMEINUSE       covered
             // 436  ERR_NICKCOLLISION
+            // 464  ERR_PASSWDMISMATCH      (password for server/znc/bnc)
             while ((rawMessage = genericStreamReader.readLine()) != null){
                 System.out.println(rawMessage);
                 if (rawMessage.startsWith("PING :")) {
@@ -222,6 +225,9 @@ public class DataProvider implements Runnable {
                 else if (rawMessage.contains(" 432 ")) {
                     System.out.println("Configuration issue: Nickname contains unacceptable characters (432 ERR_ERRONEUSNICKNAME).");
                     return false;
+                }
+                else if (rawMessage.contains(" 464 ")) {
+                    StreamProvider.writeToStream(serverName,"PASS "+configFile.getServerPass());
                 }
             }
         } catch (IOException e){

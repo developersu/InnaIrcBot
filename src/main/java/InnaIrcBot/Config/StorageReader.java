@@ -65,6 +65,7 @@ public class StorageReader {
 
             StorageFile storageFileObject = new StorageFile("srv",
                                                                 6667,
+                                                                "",
                                                                 new String[] {"#lpr",
                                                                         "#main"},
                                                                 "user_nick",

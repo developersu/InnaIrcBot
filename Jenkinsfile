@@ -2,7 +2,7 @@ pipeline {
     agent {
         docker {
            image 'maven:3-alpine'
-            args '-v /root/.m2:/root/.m2 -v /home/docker/innaircbot/files/artifact:/rel'
+            args '-v /home/docker/jenkins/files/m2:/root/.m2 -v /home/docker/innaircbot/files/artifact:/rel'
         }
     }
 
@@ -19,6 +19,7 @@ pipeline {
         }
         stage('Deploy') {
             steps {
+            // TODO: consider switch to docker registry
                 sh 'cp  ./target/InnaIrcBot-*-jar-with-dependencies.jar /rel/InnaIrcBot.jar'
                 // sh 'docker restart innaircbot'
             }

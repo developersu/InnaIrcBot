@@ -7,6 +7,7 @@ public class StorageFileTest {
         StorageFile config = new StorageFile(
                 "",
                 0,
+                "",
                 null,
                 "",
                 "",

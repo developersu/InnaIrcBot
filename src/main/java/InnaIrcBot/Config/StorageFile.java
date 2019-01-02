@@ -3,6 +3,7 @@ package InnaIrcBot.Config;
 public class StorageFile {
     private final String serverName;
     private final int serverPort;
+    private final String serverPass;
     private final String[] channels;
     private final String userNick;
     private final String userIdent;
@@ -18,6 +19,7 @@ public class StorageFile {
 
     public String getServerName() { return serverName; }
     public int getServerPort() { return serverPort; }
+    public String getServerPass() { return serverPass; }
     public String[] getChannels() { return channels; }
     public String getUserNick() { return userNick; }
     public String getUserIdent() { return userIdent; }
@@ -33,6 +35,7 @@ public class StorageFile {
 
     public StorageFile(String serverName,
                 int serverPort,
+                String serverPass,
                 String[] channels,
                 String userNick,
                 String userIdent,
@@ -47,6 +50,7 @@ public class StorageFile {
                 String chanelConfigurationsPath){
         this.serverName = serverName;
         this.serverPort = serverPort;
+        this.serverPass = serverPass;
         this.channels = channels;
         this.userIdent = userIdent;
         this.userNick = userNick;

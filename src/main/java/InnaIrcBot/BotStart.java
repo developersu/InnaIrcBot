@@ -1,7 +1,6 @@
 /**
  * InnaIrcBot
  * @author Dmitry Isaenko
- * @version 0.1 "Батлкрузер"
  * Russia, 2018.
  * */
 package InnaIrcBot;
