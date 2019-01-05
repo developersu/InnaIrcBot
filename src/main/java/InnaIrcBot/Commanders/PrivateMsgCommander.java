@@ -27,7 +27,7 @@ public class PrivateMsgCommander {                                          // T
                     case "tell":
                         if ((cmd.length == 2) && (cmd[1].split("(\\s)|(\t)+?",2).length == 2)) {
                             String[] tellArgs = cmd[1].split("(\\s)|(\t)+?", 2);
-                            tell(tellArgs[0], tellArgs[1]);
+                            tell(tellArgs[0], tellArgs[1].trim());
                         }
                         else
                             tell(simplifyNick(sender), "Pattern: tell <nick> <message>");

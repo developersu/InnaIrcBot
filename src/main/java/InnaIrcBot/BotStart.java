@@ -19,12 +19,13 @@ public class BotStart {
                     new Connections(args);
                 } else if (args[0].equals("--generate") || args[0].equals("-g")) {
                     StorageReader.generateDefaultConfig(args[1]);
-                } else if (args[0].equals("--version") || args[0].equals("-v")) {
-                    System.out.println(GlobalData.getAppVersion());
                 }
             }
             else if (args[0].equals("--generate") || args[0].equals("-g")){
                 StorageReader.generateDefaultConfig(null);
+            }
+            else if (args[0].equals("--version") || args[0].equals("-v")) {
+                System.out.println(GlobalData.getAppVersion());
             }
         }
         else {
