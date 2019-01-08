@@ -210,6 +210,9 @@ public class PrivateMsgCommander {                                          // T
                         else
                             tell(simplifyNick(sender), "Pattern: invite <user> <channel>");
                         break;
+                    case "login":
+                        tell(simplifyNick(sender), "Already logged in.");
+                        break;
                     default:
                         tell(simplifyNick(sender), "Unknown command. Could be: join, part, quit, tell, nick, ctcp, notice, umode, cmode, raw, kick[k], ban[b], unban[-b], kickban[kb], voice[v], unvoice[-v], hop[h], unhop[-h], op[o], unop[-o], topic, invite and (login)");
                 }       // TODO: chanel limits set/remove
@@ -263,9 +266,9 @@ public class PrivateMsgCommander {                                          // T
     }
     private void kick(String chanel, String user, String reason){
         if (reason == null)
-            raw("KICK "+chanel+" "+user+" :requested");
+            raw("KICK "+chanel+" "+simplifyNick(user)+" :requested");
         else
-            raw("KICK "+chanel+" "+user+" :"+reason);
+            raw("KICK "+chanel+" "+simplifyNick(user)+" :"+reason);
     }
     private void ban(String chanel, String user){
         cmode(chanel, "+b", simplifyNick(user)+"*!*@*");            // TODO: work on patter.n
