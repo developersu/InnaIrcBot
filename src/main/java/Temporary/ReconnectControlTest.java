@@ -1,7 +1,6 @@
 package Temporary;
 
 import InnaIrcBot.ReconnectControl;
-import com.sun.org.apache.regexp.internal.RE;
 
 public class ReconnectControlTest {
     public static void main(String args[]){

@@ -27,7 +27,7 @@ public class PrivateMsgCommander {                                          // T
                     case "tell":
                         if ((cmd.length == 2) && (cmd[1].split("(\\s)|(\t)+?",2).length == 2)) {
                             String[] tellArgs = cmd[1].split("(\\s)|(\t)+?", 2);
-                            tell(tellArgs[0], tellArgs[1].trim());
+                            tell(tellArgs[0], tellArgs[1]);
                         }
                         else
                             tell(simplifyNick(sender), "Pattern: tell <nick> <message>");
@@ -241,6 +241,10 @@ public class PrivateMsgCommander {                                          // T
         //System.exit(0);                                                             // TODO: change to normal exit
     }
     private void tell(String channelUser, String message){
+        message = message.trim();
+        if (message.startsWith("/me ")){
+            message = "\u0001ACTION "+message.substring(3)+"\u0001";
+        }
         raw("PRIVMSG "+channelUser+" :"+message);
     }
     private void nick(String newNick){
