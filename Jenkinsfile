@@ -25,4 +25,9 @@ pipeline {
             }
         }
     }
+    post {
+        always {
+            archiveArtifacts artifacts: 'target/*-jar-with-dependencies.jar', onlyIfSuccessful: true
+        }
+    }
 }
