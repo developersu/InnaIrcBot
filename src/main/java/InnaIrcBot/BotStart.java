@@ -1,14 +1,14 @@
 /**
  * InnaIrcBot
  * @author Dmitry Isaenko
- * Russia, 2018.
+ * Russia, 2018-2019.
  * */
 package InnaIrcBot;
 
 import InnaIrcBot.Config.StorageReader;
 
 public class BotStart {
-//TODO: Steam link, flood control, kikbana
+//TODO: flood control
 //TODO: setDaemon(true)
 //TODO: multiple connections to one server not allowed
 

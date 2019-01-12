@@ -6,8 +6,9 @@ public class BotDriver {
     private static HashMap<String, String[][]> serverDriver = new HashMap<>();
     /**
      * Define driver for desired server
-     * */                                                     // TODO: add proxy worker for using with multiple drivers
-    public static synchronized boolean setFileDriver(String serverName, String driver, String[] driverParams){
+     * */
+    // TODO: add proxy worker for using with multiple drivers
+    public static synchronized boolean setLogDriver(String serverName, String driver, String[] driverParams){
         if (!driver.isEmpty() && driverParams != null && driverParams.length > 0 && driverParams[0] != null && !driverParams[0].isEmpty()) {
             String[][] drvAndParams = {
                     {driver},
@@ -29,7 +30,9 @@ public class BotDriver {
                 case "Zero":
                     return new BotZeroWorker();
                 default:
-                    System.out.println("Configuration issue: BotDriver->getWorker() can't find required driver \""+serverDriver.get(serverName)[0][0]+"\".Using \"ZeroWorker\".");
+                    System.out.println("Configuration issue: BotDriver->getWorker() can't find required driver \""
+                            +serverDriver.get(serverName)[0][0]
+                            +"\".Using \"ZeroWorker\".");
                     return new BotZeroWorker();
             }
         }

@@ -14,7 +14,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 
 public class SystemConsumer implements Runnable{
@@ -73,7 +72,7 @@ public class SystemConsumer implements Runnable{
 
                 if (proxyRequired)
                     if (getProxy(dataStrings[0], dataStrings[1], dataStrings[2]))
-                        continue;
+                        continue;                                                                       // TODO: check this. Continue is fair?
 
                 if (dataStrings[0].equals("PRIVMSG") && dataStrings[2].indexOf("\u0001") < dataStrings[2].lastIndexOf("\u0001"))
                     replyCTCP(dataStrings[1], dataStrings[2].substring(dataStrings[2].indexOf(":")+1));
@@ -84,12 +83,22 @@ public class SystemConsumer implements Runnable{
                     commander.receiver(dataStrings[1], dataStrings[2].replaceAll("^.+?:", "").trim());
                     writerWorker.logAdd("[system]", "PRIVMSG sent to", "commander");
                 }
+                else if (dataStrings[0].equals("INNA")) {
+                    String[] splitter;
+                    if (dataStrings.length > 2){                                                        // Don't touch 'cuz it's important
+                        splitter = dataStrings[2].split(" ", 2);
+                        if (splitter.length == 2){
+                            handleSpecial(dataStrings[1], splitter[0], splitter[1]);
+                        }
+                    }
+                }
                 else
                     writerWorker.logAdd(dataStrings[0], dataStrings[1], dataStrings[2]);                            // TODO: Track users
                 //System.out.println("System: "+"|"+dataStrings[0]+"|"+dataStrings[1]+"|"+dataStrings[2]+"|");
             }
         } catch (java.io.IOException e){
-                System.out.println("Internal issue: thread SystemConsumer->run() caused I/O exception.");           // TODO: reconnect
+                System.out.println("Internal issue: thread SystemConsumer->run() caused I/O exception.");           // TODO: reconnect OR AT LEAST DIE
+                StreamProvider.writeToStream(serverName, "QUIT :Internal issue: thread ChanConsumer->run() caused I/O exception");
         }
     }
     private boolean getProxy(String eventNum, String sender, String message){                              //TODO: if can't join: like channel with password
@@ -138,8 +147,16 @@ public class SystemConsumer implements Runnable{
     }
     private String simplifyNick(String nick){ return nick.replaceAll("!.*$",""); }
 
-    //todo: nandle nickserv messages
 
+    private void handleSpecial(String event, String chanel, String message){
+        //System.out.println("|"+event+"|"+chanel+"|"+message+"|");
+        if (channelsMap.containsKey(chanel)){
+            channelsMap.get(chanel).println(event+" "+nick+" "+chanel+" "+message);         // WTF ><
+            channelsMap.get(chanel).flush();
+            //System.out.println("Formatted: |"+event+"|"+nick+"|"+chanel+" "+message+"|");
+        }
+    }
+    //todo: nandle nickserv messages
     private void handleNumeric(String eventNum, String sender, String message){
         switch (eventNum){
             case "433":                                                             // TODO: try to use alternative nickname
@@ -165,7 +182,6 @@ public class SystemConsumer implements Runnable{
                         ChanConsumer consumer = new ChanConsumer(streamBufferedReader, storageFile.getServerName(), chan, nick, usersOnChanArr, storageFile.getRejoinOnKick(), channelsMap, storageFile.getChanelConfigurationsPath());
                         new Thread(consumer).start();
 
-
                         for (String msgStored : proxyAList.get(chan)) {
                             channelsMap.get(chan).println(msgStored);
                             channelsMap.get(chan).flush();
@@ -185,9 +201,7 @@ public class SystemConsumer implements Runnable{
                 break;
             case "NICK":
                 if (sender.startsWith(nick+"!")) {
-                    String oldNick = nick;
                     nick = message.trim();
-
                     writerWorker.logAdd("[system]", "catch/handled own NICK change from:", sender+" to: "+message);
                 }
                 break;

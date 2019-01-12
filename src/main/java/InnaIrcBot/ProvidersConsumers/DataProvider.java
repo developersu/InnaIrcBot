@@ -51,7 +51,6 @@ public class DataProvider implements Runnable {
                 this.ableToRun = false;
                 return;
             }
-
             InputStream inStream = socket.getInputStream();
             InputStreamReader isr = new InputStreamReader(inStream, StandardCharsets.UTF_8);       //TODO set charset in options;
             this.rawStreamReader = new BufferedReader(isr);
@@ -69,21 +68,11 @@ public class DataProvider implements Runnable {
     }
 
     public void run(){
-        if (!ableToRun) {
+        if (!ableToRun || !this.initConnection(rawStreamReader)
+                || !BotDriver.setLogDriver(serverName, configFile.getLogDriver(), configFile.getLogDriverParameters())) {   //Prepare logDriver for using in threads.
             this.close();
             return;
         }
-
-        if(!this.initConnection(rawStreamReader)) {
-            this.close();
-            return;
-        }
-
-        //Prepare logDriver for using in threads.
-       if(!BotDriver.setFileDriver(serverName, configFile.getLogDriver(), configFile.getLogDriverParameters())) {
-           this.close();
-           return;
-       }
 
         /* Used for sending data into consumers objects*/
         Map<String, PrintWriter> channelsMap = Collections.synchronizedMap(new HashMap<String, PrintWriter>());
@@ -95,9 +84,13 @@ public class DataProvider implements Runnable {
                             new PipedInputStream(streamOut), StandardCharsets.UTF_8)
             );
 
-            Runnable consumer = new SystemConsumer(streamBufferedReader, userNick, channelsMap, this.configFile);
-            new Thread(consumer).start();
-            channelsMap.put("", new PrintWriter(streamOut));        // Not sure that PrintWriter is thread-safe..
+            Runnable systemConsumer = new SystemConsumer(streamBufferedReader, userNick, channelsMap, this.configFile);
+            new Thread(systemConsumer).start();
+            PrintWriter systemConsumerWriter = new PrintWriter(streamOut);
+
+            StreamProvider.setSysConsumer(serverName, systemConsumerWriter);    // Register system consumer at StreamProvider
+
+            channelsMap.put("", systemConsumerWriter);        // Not sure that PrintWriter is thread-safe..
         } catch (IOException e){
             System.out.println("Internal issue: DataProvider->run() I/O exception while initialized child objects.\n\t"+e);             // caused by Socket
             this.close();

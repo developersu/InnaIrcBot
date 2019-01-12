@@ -22,6 +22,9 @@ public class PrivateMsgCommander {                                          // T
             if (administrators.contains(sender) && !message.isEmpty()) {
                 String[] cmd = message.split("(\\s)|(\t)+?", 2);
                 cmd[0] = cmd[0].toLowerCase();
+                if (cmd.length > 1)
+                    cmd[1] = cmd[1].trim();
+
 
                 switch (cmd[0]){
                     case "tell":

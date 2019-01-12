@@ -6,7 +6,7 @@ import InnaIrcBot.LogDriver.Worker;
 public class DriverTest {
 
     public static void main(String[] args){
-        if (BotDriver.setFileDriver("irc.tomsk.net", "SQLiteDriver", new String[]{"/tmp/"}))
+        if (BotDriver.setLogDriver("irc.tomsk.net", "SQLiteDriver", new String[]{"/tmp/"}))
                 System.out.println("Successful driver initiation");
         else {
             System.out.println("Failed driver initiation");
