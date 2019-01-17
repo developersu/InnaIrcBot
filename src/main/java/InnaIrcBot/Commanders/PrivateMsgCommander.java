@@ -290,7 +290,7 @@ public class PrivateMsgCommander {                                          // T
         }
     }
     private void kickban(String chanel, String user, String reason){
-        cmode(chanel, "+b", simplifyNick(user)+"*!*@*");
+        ban(chanel, user);
         kick(chanel, user, reason);
     }
     private void voice(String chanel, String user){

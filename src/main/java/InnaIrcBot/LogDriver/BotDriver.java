@@ -27,6 +27,8 @@ public class BotDriver {
                     return new BotFilesWorker(serverName, serverDriver.get(serverName)[1], chanelName);
                 case "SQLite":
                     return new BotSQLiteWorker(serverName, serverDriver.get(serverName)[1], chanelName);
+                case "MongoDB":
+                    return new BotMongoWorker(serverName, serverDriver.get(serverName)[1], chanelName);
                 case "Zero":
                     return new BotZeroWorker();
                 default:

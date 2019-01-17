@@ -65,7 +65,7 @@ public class SystemConsumer implements Runnable{
 
     private void setMainRoutine(){
         String data;
-        String dataStrings[];
+        String[] dataStrings;
         try {
             while ((data = reader.readLine()) != null) {
                 dataStrings = data.split(" ",3);

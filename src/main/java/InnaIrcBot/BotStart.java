@@ -11,6 +11,7 @@ public class BotStart {
 //TODO: flood control
 //TODO: setDaemon(true)
 //TODO: multiple connections to one server not allowed
+    // TODO switch to zero-worker in case of inconsistent state of Worker
 
     public static void main(String[] args){
         if (args.length != 0) {

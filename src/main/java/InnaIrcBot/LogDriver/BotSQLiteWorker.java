@@ -168,15 +168,15 @@ public class BotSQLiteWorker implements Worker {
                     preparedStatement.setString(5, messageArg.replaceAll("^(.+?\\s){2}", ""));
                     break;
                 case "KICK":
-                    preparedStatement.setString(4,messageArg.replaceAll("^.+?:", ""));
-                    preparedStatement.setString(5,messageArg.replaceAll("(^.+?\\s)|(\\s.+$)", ""));
+                    preparedStatement.setString(4, messageArg.replaceAll("^.+?:", ""));
+                    preparedStatement.setString(5, messageArg.replaceAll("(^.+?\\s)|(\\s.+$)", ""));
                     break;
                 case "PRIVMSG":
-                    preparedStatement.setString(4,messageArg.replaceAll("^:", ""));
+                    preparedStatement.setString(4, messageArg.replaceAll("^:", ""));
                     preparedStatement.setString(5,null);
                     break;
                 default:
-                    preparedStatement.setString(4,messageArg);
+                    preparedStatement.setString(4, messageArg);
                     preparedStatement.setString(5,null);
                     break;
             }
