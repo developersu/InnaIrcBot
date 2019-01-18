@@ -32,7 +32,7 @@ Used libraries:
 - [x] CI/CD Jenkins
 - [ ] Suppress messages from server or handle them separately from selected worker
 - [ ] Logs backend workers as threads (SQLite and co. are too slow)
-- [ ] Logs backend worker for mongodb 
+- [x] Logs backend worker for mongodb 
 - [ ] Logs backend worker for redis/redis node
 - [ ] Re-implement connection routine
 - [ ] Availability to run scripts @ 'ChanelCommander' 

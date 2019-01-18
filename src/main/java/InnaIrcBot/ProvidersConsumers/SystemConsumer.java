@@ -197,7 +197,7 @@ public class SystemConsumer implements Runnable{
                     }
                 }
                 else
-                    System.out.println("Some internal shit happens that shouldn't happens never ever. Take your cat, call scientists and wait for singularity. Panic allowed.");
+                    System.out.println("Some internal shit happens that shouldn't happens never ever. Take your cat, call scientists and wait for singularity. Panic allowed. Log: \nEvent:|"+eventNum+"| sender:|"+sender+"| message|"+message+"|");
                 break;
             case "NICK":
                 if (sender.startsWith(nick+"!")) {

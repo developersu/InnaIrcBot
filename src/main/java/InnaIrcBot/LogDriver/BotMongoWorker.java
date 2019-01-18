@@ -1,6 +1,5 @@
 package InnaIrcBot.LogDriver;
 
-
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoTimeoutException;
@@ -24,7 +23,7 @@ public class BotMongoWorker implements Worker {
 
     private String ircServer;
     private MongoCollection<Document> collection;
-    private boolean consistent = true;  // TODO: clarify possible issues???
+    private boolean consistent = false;  // TODO: clarify possible issues???
 
     public BotMongoWorker(String ircServer, String[] driverParameters, String channel){
         if (channel.equals("system"))       // Set ircServer variable only if it's 'system' log thread.
@@ -34,44 +33,54 @@ public class BotMongoWorker implements Worker {
 
         if (!serversMap.containsKey(ircServer)){
 
-            MongoClientSettings MCS = MongoClientSettings.builder().addCommandListener(new CommandListener() {
+            CommandListener mongoCommandListener = new CommandListener() {
                 @Override
                 public void commandStarted(CommandStartedEvent commandStartedEvent) {
-                    System.out.println("commandStarted");
+                    System.out.println("C: commandStarted");
                 }
 
                 @Override
                 public void commandSucceeded(CommandSucceededEvent commandSucceededEvent) {
-                    System.out.println("commandSucceeded");
+                    System.out.println("C: commandSucceeded");
                 }
 
                 @Override
                 public void commandFailed(CommandFailedEvent commandFailedEvent) {
-                    System.out.println("commandFailed");
+                    System.out.println("C: commandFailed");
+                    consistent = false;
+                    close(ircServer);           // ircServer recieved by constructor, not this.ircServer
                 }
-            })
-                    .applyConnectionString(new ConnectionString("mongodb://asasa:27017"))
-                    .applyToServerSettings(builder -> builder.addServerListener(new ServerListener() {
-                        @Override
-                        public void serverOpening(ServerOpeningEvent serverOpeningEvent) {
-                            System.out.println("Server Listener: 1 SRV ID: "+serverOpeningEvent.getServerId());
-                        }
+            };
 
-                        @Override
-                        public void serverClosed(ServerClosedEvent serverClosedEvent) {
-                            System.out.println("Server Listener: Server has been closed");
-                        }
+            ServerListener mongoServerListener = new ServerListener() {
+                @Override
+                public void serverOpening(ServerOpeningEvent serverOpeningEvent) {
+                    System.out.println("BotMongoWorker: ServerListener: Server opened successfully: "+serverOpeningEvent.getServerId());
+                }
 
-                        @Override
-                        public void serverDescriptionChanged(ServerDescriptionChangedEvent serverDescriptionChangedEvent) {
-                            System.out.println("Server Listener: Desc Changed: "+serverDescriptionChangedEvent.getNewDescription().getException());
-                            close();
-                        }
-                    }))
+                @Override
+                public void serverClosed(ServerClosedEvent serverClosedEvent) {
+                    System.out.println("BotMongoWorker: ServerListener: Server has been closed");
+                }
+
+                @Override
+                public void serverDescriptionChanged(ServerDescriptionChangedEvent serverDescriptionChangedEvent) {
+                    if (!serverDescriptionChangedEvent.getNewDescription().isOk()) {
+                        consistent = false;
+                        close(ircServer);           // ircServer recieved by constructor, not this.ircServer
+                        System.out.println("BotMongoWorker: ServerListener: Server description changed (exception occurs): "
+                                + serverDescriptionChangedEvent.getNewDescription().getException());
+                    }
+                }
+            };
+
+            MongoClientSettings MCS = MongoClientSettings.builder()
+                    .addCommandListener(mongoCommandListener)
+                    .applyConnectionString(new ConnectionString("mongodb://192.168.1.186:27017"))   // TODO: replace with driverParameters[0] - address
+                    .applyToServerSettings(builder -> builder.addServerListener(mongoServerListener))
                     .build();
 
             MongoClient mongoClient = MongoClients.create(MCS);
-            //MongoClient mongoClient = MongoClients.create("mongodb://asasa:27017"); // TODO: replace with driverParameters[0] - address
             serversMap.put(ircServer, mongoClient);
         }
 
@@ -81,14 +90,15 @@ public class BotMongoWorker implements Worker {
         Document ping = new Document("ping", "1");
         try {
             collection.insertOne(ping);
-        }catch (MongoTimeoutException e) {
-            System.out.println("Timeout exception");
+            consistent = true;          // if no exceptions, then true
+        } catch (MongoTimeoutException e) {
+            System.out.println("BotMongoWorker: Timeout exception");
             consistent = false;
+            close(ircServer);           // ircServer recieved by constructor, not this.ircServer
         } catch (IllegalStateException ise){
-            System.out.println("Illegal state exception: MongoDB server already closed.");
+            System.out.println("BotMongoWorker: Illegal state exception: MongoDB server already closed (not an issue).");
             consistent = false;
         }
-
     }
 
     @Override
@@ -142,6 +152,12 @@ public class BotMongoWorker implements Worker {
             serversMap.remove(ircServer);
             System.out.println("BotMongoWorker->close(): " + ircServer);
         }
-
+    }
+    public void close(String server) {
+        if (serversMap.containsKey(server)) {
+            serversMap.get(server).close();
+            serversMap.remove(server);
+            System.out.println("BotMongoWorker->close(): " + server + " (forced by listeners)");
+        }
     }
 }

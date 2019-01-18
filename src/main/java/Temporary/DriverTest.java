@@ -14,13 +14,13 @@ public class DriverTest {
         }
 
         Worker fw1 = BotDriver.getWorker("irc.tomsk.net","system");
-        //Worker fw2 = BotDriver.getWorker("irc.tomsk.net","#main");
-        //Worker fw3 = BotDriver.getWorker("irc.tomsk.net","#lpr");
+        Worker fw2 = BotDriver.getWorker("irc.tomsk.net","#main");
+        Worker fw3 = BotDriver.getWorker("irc.tomsk.net","#lpr");
 
         //if ((fw1 !=null) && (fw2 !=null) && (fw3 !=null)){
             System.out.println("LogFile1: "+fw1.isConsistent());
-            //System.out.println("LogFile2: "+fw2.isConsistent());
-            //System.out.println("LogFile3: "+fw3.isConsistent());
+            System.out.println("LogFile2: "+fw2.isConsistent());
+            System.out.println("LogFile3: "+fw3.isConsistent());
 /*
             fw1.logAdd("JOIN", "de_su!loper@desktop.lan", "message1");
             fw1.logAdd("PRIVMSG", "de_su!loper@desktop.lan", ": some text here");
@@ -44,8 +44,8 @@ public class DriverTest {
             fw3.logAdd("PART", "de_su!loper@desktop.lan", "#chan3");
 */
             fw1.close();
-            //fw2.close();
-            //fw3.close();
+            fw2.close();
+            fw3.close();
         //}
     }
 }

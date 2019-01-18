@@ -28,7 +28,11 @@ public class BotDriver {
                 case "SQLite":
                     return new BotSQLiteWorker(serverName, serverDriver.get(serverName)[1], chanelName);
                 case "MongoDB":
-                    return new BotMongoWorker(serverName, serverDriver.get(serverName)[1], chanelName);
+                    BotMongoWorker botMongoWorker = new BotMongoWorker(serverName, serverDriver.get(serverName)[1], chanelName);
+                    if (botMongoWorker.isConsistent())
+                        return botMongoWorker;
+                    else
+                        System.out.println("BotDriver: Unable to use MongoWorker. Using ZeroWorker instead.");               // else, fall down and use BotZeroWorker.
                 case "Zero":
                     return new BotZeroWorker();
                 default:
