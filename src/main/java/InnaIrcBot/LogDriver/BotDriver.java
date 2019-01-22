@@ -32,7 +32,7 @@ public class BotDriver {
                     if (botMongoWorker.isConsistent())
                         return botMongoWorker;
                     else
-                        System.out.println("BotDriver: Unable to use MongoWorker. Using ZeroWorker instead.");               // else, fall down and use BotZeroWorker.
+                        System.out.println("BotDriver: Unable to use MongoWorker for "+serverName+". Using ZeroWorker instead.");               // else, fall down and use BotZeroWorker.
                 case "Zero":
                     return new BotZeroWorker();
                 default:

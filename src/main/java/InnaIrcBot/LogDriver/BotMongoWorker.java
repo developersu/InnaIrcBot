@@ -1,8 +1,6 @@
 package InnaIrcBot.LogDriver;
 
-import com.mongodb.ConnectionString;
-import com.mongodb.MongoClientSettings;
-import com.mongodb.MongoTimeoutException;
+import com.mongodb.*;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
@@ -25,42 +23,63 @@ public class BotMongoWorker implements Worker {
     private MongoCollection<Document> collection;
     private boolean consistent = false;  // TODO: clarify possible issues???
 
+    private boolean isItSystemThread = false;
+
     public BotMongoWorker(String ircServer, String[] driverParameters, String channel){
-        if (channel.equals("system"))       // Set ircServer variable only if it's 'system' log thread.
-            this.ircServer = ircServer;
+        this.ircServer = ircServer;
+
+        String mongoHostAddr;
+        String mongoDBName;
+        String mongoUser;
+        String mongoPass;
+        if (driverParameters.length >= 2 && !driverParameters[0].isEmpty() && !driverParameters[1].isEmpty()) {
+            mongoHostAddr = driverParameters[0];
+            mongoDBName = driverParameters[1];
+            if (driverParameters.length == 4 && !driverParameters[2].isEmpty() && !driverParameters[3].isEmpty()) {
+                mongoUser = driverParameters[2];
+                mongoPass = driverParameters[3];
+            }
+            else {  // Consider that DB does not require auth, therefore any credentials are fine, since not null ;)
+                mongoUser = "anon";
+                mongoPass = "anon";
+            }
+        }
         else
-            this.ircServer = null;
+            return; // consistent = false
+
+        if (channel.equals("system"))       // Set ircServer variable only if it's 'system' log thread.
+            this.isItSystemThread = true;
 
         if (!serversMap.containsKey(ircServer)){
-
+            /*      // Leave this validations for better times.
             CommandListener mongoCommandListener = new CommandListener() {
                 @Override
                 public void commandStarted(CommandStartedEvent commandStartedEvent) {
-                    System.out.println("C: commandStarted");
+                    System.out.println("BotMongoWorker (@"+this.ircServer+"): C: commandStarted");
                 }
 
                 @Override
                 public void commandSucceeded(CommandSucceededEvent commandSucceededEvent) {
-                    System.out.println("C: commandSucceeded");
+                    System.out.println("BotMongoWorker (@"+this.ircServer+"): C: commandSucceeded");
                 }
 
                 @Override
                 public void commandFailed(CommandFailedEvent commandFailedEvent) {
-                    System.out.println("C: commandFailed");
-                    consistent = false;
-                    close(ircServer);           // ircServer recieved by constructor, not this.ircServer
+                    System.out.println("BotMongoWorker (@"+this.ircServer+"): C: commandFailed");
+                    //consistent = false;
+                    //close(ircServer);           // ircServer recieved by constructor, not this.ircServer
                 }
             };
-
+            */
             ServerListener mongoServerListener = new ServerListener() {
                 @Override
                 public void serverOpening(ServerOpeningEvent serverOpeningEvent) {
-                    System.out.println("BotMongoWorker: ServerListener: Server opened successfully: "+serverOpeningEvent.getServerId());
+                    System.out.println("BotMongoWorker (@"+ircServer+"): ServerListener: Server opened successfully: "+serverOpeningEvent.getServerId());
                 }
 
                 @Override
                 public void serverClosed(ServerClosedEvent serverClosedEvent) {
-                    System.out.println("BotMongoWorker: ServerListener: Server has been closed");
+                    System.out.println("BotMongoWorker (@"+ircServer+"): ServerListener: Server has been closed");
                 }
 
                 @Override
@@ -68,35 +87,44 @@ public class BotMongoWorker implements Worker {
                     if (!serverDescriptionChangedEvent.getNewDescription().isOk()) {
                         consistent = false;
                         close(ircServer);           // ircServer recieved by constructor, not this.ircServer
-                        System.out.println("BotMongoWorker: ServerListener: Server description changed (exception occurs): "
+                        System.out.println("BotMongoWorker (@"+ircServer+"): ServerListener: Server description changed (exception occurs): "
                                 + serverDescriptionChangedEvent.getNewDescription().getException());
                     }
                 }
             };
 
             MongoClientSettings MCS = MongoClientSettings.builder()
-                    .addCommandListener(mongoCommandListener)
-                    .applyConnectionString(new ConnectionString("mongodb://192.168.1.186:27017"))   // TODO: replace with driverParameters[0] - address
+            //      .addCommandListener(mongoCommandListener)
+                    .applyConnectionString(new ConnectionString("mongodb://"+mongoHostAddr))
                     .applyToServerSettings(builder -> builder.addServerListener(mongoServerListener))
+                    .credential(MongoCredential.createCredential(mongoUser, mongoDBName, mongoPass.toCharArray()))
                     .build();
 
             MongoClient mongoClient = MongoClients.create(MCS);
             serversMap.put(ircServer, mongoClient);
         }
 
-        MongoDatabase mongoDB = serversMap.get(ircServer).getDatabase("irc");    // TODO: replace with driverParameters[1] - DB NAME
+        MongoDatabase mongoDB = serversMap.get(ircServer).getDatabase(mongoDBName);
         collection = mongoDB.getCollection(ircServer + channel);
 
         Document ping = new Document("ping", "1");
         try {
             collection.insertOne(ping);
             consistent = true;          // if no exceptions, then true
-        } catch (MongoTimeoutException e) {
-            System.out.println("BotMongoWorker: Timeout exception");
+        } catch (MongoCommandException mce){
+            System.out.println("BotMongoWorker (@"+this.ircServer+"): Command exception. Check if username/password set correctly.");
             consistent = false;
-            close(ircServer);           // ircServer recieved by constructor, not this.ircServer
+            close(ircServer);           // ircServer received by constructor, not this.ircServer
+        } catch (MongoTimeoutException mte) {
+            System.out.println("BotMongoWorker (@"+this.ircServer+"): Timeout exception");
+            consistent = false;
+            close(ircServer);           // ircServer received by constructor, not this.ircServer
+        }catch (MongoException me){
+            System.out.println("BotMongoWorker (@"+this.ircServer+"): MongoDB Exception");
+            consistent = false;
+            close(ircServer);           // ircServer received by constructor, not this.ircServer
         } catch (IllegalStateException ise){
-            System.out.println("BotMongoWorker: Illegal state exception: MongoDB server already closed (not an issue).");
+            System.out.println("BotMongoWorker (@"+this.ircServer+"): Illegal state exception: MongoDB server already closed (not an issue).");
             consistent = false;
         }
     }
@@ -135,7 +163,7 @@ public class BotMongoWorker implements Worker {
                 //preparedStatement.setString(5,null);
                 break;
         }
-        collection.insertOne(document);
+        collection.insertOne(document);                                                                 // TODO: try/catch and watch
     }
 
     private long getDate(){ return System.currentTimeMillis() / 1000L; }  // UNIX time
@@ -147,17 +175,17 @@ public class BotMongoWorker implements Worker {
     public void close() {
         // If ircServer != null then it's system thread and when it's interrupted we have to close connection to DB for used server
         // And remove it from HashMap
-        if (this.ircServer != null && serversMap.containsKey(ircServer)) {
+        if (this.isItSystemThread && serversMap.containsKey(ircServer)) {
             serversMap.get(ircServer).close();
             serversMap.remove(ircServer);
-            System.out.println("BotMongoWorker->close(): " + ircServer);
+            System.out.println("BotMongoWorker (@"+this.ircServer+")->close(): " + ircServer);
         }
     }
     public void close(String server) {
         if (serversMap.containsKey(server)) {
             serversMap.get(server).close();
             serversMap.remove(server);
-            System.out.println("BotMongoWorker->close(): " + server + " (forced by listeners)");
+            System.out.println("BotMongoWorker (@"+this.ircServer+")->close(): " + server + " (forced by listeners)");
         }
     }
 }

@@ -17,7 +17,7 @@ public class BotSQLiteWorker implements Worker {
     public BotSQLiteWorker(String server, String[] driverParameters,  String channel){    // TODO: threads on SQLite level // remember: One file one DB
         driverParameters[0] = driverParameters[0].trim();
         File dir = new File(driverParameters[0]);
-        dir.mkdirs();
+        dir.mkdirs();                                                                       // TODO: Check if not-null
         if (!dir.exists()) {
             System.out.println("Unable to create directory to store DB file: " + driverParameters[0]);      //TODO: notify requester
             this.consistent = false;
@@ -116,7 +116,7 @@ public class BotSQLiteWorker implements Worker {
                     // Validating result: it table in DB have expected schema. If not, removing and recreating table.
                 for (boolean element: schemaResultCheck) {
                     if (!element) {
-                        System.out.println("BotSQLiteWorker: Found already existing table for channel with incoorect syntax: removing table and re-creating.");
+                        System.out.println("BotSQLiteWorker: Found already existing table for channel with incorrect syntax: removing table and re-creating.");
                         statement.executeUpdate("DROP TABLE \"" + safeChanName + "\";");
                         statement.executeUpdate(query);
                         break;
