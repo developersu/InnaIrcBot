@@ -29,7 +29,9 @@ public class SystemConsumer implements Runnable{
     private PrivateMsgCommander commander;
 
     SystemConsumer(BufferedReader streamReader, String userNick, Map<String, PrintWriter>  map, StorageFile storage) {
+
         this.writerWorker = BotDriver.getWorker(storage.getServerName(), "system");
+
         this.nick = userNick;
         this.serverName = storage.getServerName();
         this.channelsMap = map;

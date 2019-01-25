@@ -25,7 +25,6 @@ public class PrivateMsgCommander {                                          // T
                 if (cmd.length > 1)
                     cmd[1] = cmd[1].trim();
 
-
                 switch (cmd[0]){
                     case "tell":
                         if ((cmd.length == 2) && (cmd[1].split("(\\s)|(\t)+?",2).length == 2)) {

@@ -35,20 +35,27 @@ public class BotDriver {
                 case "zero":
                     return new BotZeroWorker();
                 default:
-                    System.out.println("Configuration issue: BotDriver->getWorker() can't find required driver \""
+                    System.out.println("BotDriver->getWorker(): Configuration issue: can't find required driver \""
                             +serverDriver.get(serverName)[0][0]
                             +"\".Using \"ZeroWorker\".");
                     return new BotZeroWorker();
             }
         }
-        return null;
+        System.out.println("BotDriver->getWorker(): Unknown issue: Channel exists for non-existing server.\n\tUsing ZeroWorker.");
+        return new BotZeroWorker();
+    }
+    // If channel found that it's impossible to use defined worker from user settings and asking for use ZeroWorker
+    public static synchronized Worker getZeroWorker(){
+        return new BotZeroWorker();
     }
     private static Worker validateConstancy(Worker worker, String srv, String chan){     // synchronized?
         if (worker.isConsistent()){
             return worker;
         }
         else {
-            System.out.println("BotDriver: Unable to use "+worker.getClass().getSimpleName()+" for "+srv+"/"+chan+". Using ZeroWorker instead.");
+            System.out.println("BotDriver->validateConstancy(): Unable to use "
+                    +worker.getClass().getSimpleName()+" for "+srv+"/"+chan
+                    +". Using ZeroWorker instead.");
             return new BotZeroWorker();
         }
     }
