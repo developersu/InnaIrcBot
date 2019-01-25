@@ -23,6 +23,7 @@ Source code spreads under the GNU General Public License v3 or higher. Please se
 Used libraries:
 * GSON: https://github.com/google/gson
 * sqliteJDBC: https://bitbucket.org/xerial/sqlite-jdbc
+* mongodb-driver-sync: https://mongodb.github.io/mongo-java-driver/3.9/
 
 
 ## TODO:

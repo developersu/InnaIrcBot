@@ -11,16 +11,24 @@ public class BotSQLiteWorker implements Worker {
     private Connection connection;
     private boolean consistent = false;
     private PreparedStatement preparedStatement;
+
+    private String ircServer;
 /**
  * Don't even think of changing this balalaika.
  * */
-    public BotSQLiteWorker(String server, String[] driverParameters,  String channel){    // TODO: threads on SQLite level // remember: One file one DB
+    public BotSQLiteWorker(String server, String[] driverParameters,  String channel){        // TODO: threads on SQLite level // remember: One file one DB
+        this.ircServer = server;
         driverParameters[0] = driverParameters[0].trim();
         File dir = new File(driverParameters[0]);
-        dir.mkdirs();                                                                       // TODO: Check if not-null
-        if (!dir.exists()) {
-            System.out.println("Unable to create directory to store DB file: " + driverParameters[0]);      //TODO: notify requester
-            this.consistent = false;
+        try {
+            dir.mkdirs();       // ignore result, because if it's already exists we're good. Otherwise, it will be created. Only issue that can occur is SecurityException thrown, so let's catch it.
+        } catch (Exception e){
+            System.out.println("BotSQLiteWorker (@"+server+")->constructor(): Failure:\n\tUnable to create directory to store DB file: \n\t" +e);
+            return;     // consistent = false;
+        }
+        if (!dir.exists()) {                                                                // probably we might want to try-catch SecurityException, but if it appeared, it has been appeared already in previous block
+            System.out.println("BotSQLiteWorker (@"+server+")->constructor(): Failure:\n\tUnable to create directory to store DB file: " + driverParameters[0]);
+            return;     // consistent = false;
         }
         String connectionURL;
         if (driverParameters[0].endsWith(File.separator))
@@ -28,7 +36,7 @@ public class BotSQLiteWorker implements Worker {
         else
             connectionURL = "jdbc:sqlite:"+driverParameters[0]+File.separator+server+".db";
 
-        String safeChanName = channel.trim().replaceAll("\"","\\\"");           // TODO: use trim in every driver/worker?
+        channel = channel.trim().replaceAll("\"","\\\"");           // TODO: use trim in every driver/worker?
         try {
             SQLiteConfig sqlConfig = new SQLiteConfig();
             sqlConfig.setOpenMode(SQLiteOpenMode.NOMUTEX);      //SQLITE_OPEN_NOMUTEX : multithreaded mode
@@ -37,7 +45,7 @@ public class BotSQLiteWorker implements Worker {
             if (connection != null){
                 // Create table if not created
                 Statement statement = connection.createStatement();
-                String query = "CREATE TABLE IF NOT EXISTS \""+safeChanName+"\" ("
+                String query = "CREATE TABLE IF NOT EXISTS \""+channel+"\" ("
                         + "	id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,"
                         + "	unixtime INTEGER,"
                         + "	event TEXT,"
@@ -48,7 +56,7 @@ public class BotSQLiteWorker implements Worker {
                 statement.executeUpdate(query);
 
                 // Check table representation
-                ResultSet rs = statement.executeQuery("PRAGMA table_info(\""+safeChanName+"\");");  // executeQuery never null
+                ResultSet rs = statement.executeQuery("PRAGMA table_info(\""+channel+"\");");  // executeQuery never null
                 boolean[] schemaResultCheck = {false, false, false, false, false, false};
 
                 while (rs.next()) {
@@ -116,8 +124,8 @@ public class BotSQLiteWorker implements Worker {
                     // Validating result: it table in DB have expected schema. If not, removing and recreating table.
                 for (boolean element: schemaResultCheck) {
                     if (!element) {
-                        System.out.println("BotSQLiteWorker: Found already existing table for channel with incorrect syntax: removing table and re-creating.");
-                        statement.executeUpdate("DROP TABLE \"" + safeChanName + "\";");
+                        System.out.println("BotSQLiteWorker (@"+server+")->Constructor(): Notice:\n\tFound already existing table for channel with incorrect syntax: removing table and re-creating.");
+                        statement.executeUpdate("DROP TABLE \"" + channel + "\";");
                         statement.executeUpdate(query);
                         break;
                     }
@@ -125,17 +133,18 @@ public class BotSQLiteWorker implements Worker {
                 this.consistent = true;
 
                 this.preparedStatement = connection.prepareStatement(
-                        "INSERT INTO \""+safeChanName
+                        "INSERT INTO \""+channel
                         +"\" (unixtime, event, subject, message, object) "
                         +"VALUES (?, ?, ?, ?, ?);");
             }
             else {
+                System.out.println("BotSQLiteWorker (@"+server+")->constructor() failed:\n\t Connection to SQLite not established.");
                 this.consistent = false;
             }
         }
         catch (SQLException e){
-            System.out.println("Internal issue: BotSQLiteWorker->constructor() failed\n\t"+e);
-            this.consistent = false;
+            System.out.println("BotSQLiteWorker (@"+server+")->constructor() failed:\n\t"+e);
+            this.consistent = false; // this.close();
         }
 
     }
@@ -146,7 +155,7 @@ public class BotSQLiteWorker implements Worker {
     public boolean isConsistent() {return consistent; }
 
     @Override
-    public void logAdd(String event, String initiatorArg, String messageArg) {
+    public boolean logAdd(String event, String initiatorArg, String messageArg) {
         try {
             preparedStatement.setLong(1, getDate());
             preparedStatement.setString(2, event);
@@ -182,10 +191,14 @@ public class BotSQLiteWorker implements Worker {
             }
             preparedStatement.executeUpdate();
         }
-        catch (SQLException e){
-            System.out.println("Internal issue: BotSQLiteWorker->logAdd() failed\n\t"+e);
-            this.consistent = false;
+        catch (SQLException sqle){
+            System.out.println("BotSQLiteWorker (@"+ircServer+")->logAdd() failed:\n\t"+sqle);
+            this.close();       // consistent will become false. Don't touch this.
+        }catch (NullPointerException npe){
+            System.out.println("BotSQLiteWorker (@"+ircServer+")->logAdd() failed:\n\t"+npe);
+            this.consistent = false;        // most likely closed/non-opened file
         }
+        return consistent;
     }
 
     @Override
@@ -194,8 +207,9 @@ public class BotSQLiteWorker implements Worker {
             //System.out.println("SQLite drier closed");
             this.connection.close();
         }
-        catch (SQLException e){
-                System.out.println("Internal issue: BotSQLiteWorker->close() failed\n\t" + e);
+        catch (SQLException | NullPointerException e){      //todo: consider redo
+                System.out.println("BotSQLiteWorker (@"+ircServer+")->close() failed:\n\t" + e);      // nothing to do here
         }
+        this.consistent = false;
     }
 }

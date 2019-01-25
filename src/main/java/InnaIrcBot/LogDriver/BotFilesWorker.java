@@ -16,31 +16,35 @@ public class BotFilesWorker implements Worker {
     private LocalDate fileWriterDay;
     private FileWriter fileWriter;
 
-    public BotFilesWorker(String server, String[] driverParameters, String channel){
-        if (System.getProperty("os.name").startsWith("Windows")){
-            channel = channel.replaceAll("\",",",");
-        }
-        else {
-            channel = channel.replaceAll("/",",");
-        }
+    private String ircServer;       // hold for debug only
 
-        driverParameters[0] = driverParameters[0].trim();       //Consider parameters[0] as dirLocation
-        String dirLocation;
-        if (driverParameters[0].endsWith(File.separator))
-            dirLocation = driverParameters[0]+server;
+    public BotFilesWorker(String server, String[] driverParameters, String channel){
+        ircServer = server;
+        dateFormat = DateTimeFormatter.ofPattern("HH:mm:ss");
+
+        channel = channel.replaceAll(File.separator, ",");
+
+        String dirLocation = driverParameters[0].trim();
+        if (dirLocation.endsWith(File.separator))
+            dirLocation = dirLocation+server;
         else
-            dirLocation = driverParameters[0]+File.separator+server;
-        File dir = new File(dirLocation);
-        dir.mkdirs();
-        if (!dir.exists()) {
-            System.out.println("Unable to create directory to store files: " + dirLocation);      //TODO: notify requester
-            this.consistent = false;
-        }
+            dirLocation = dirLocation+File.separator+server;
+
         this.filePath = dirLocation+File.separator+channel;
 
-        dateFormat = DateTimeFormatter.ofPattern("HH:mm:ss");
-        if (resetFileWriter(false))
-            this.consistent = true;
+        File dir = new File(dirLocation);
+        try {
+            dir.mkdirs();       // ignore result, because if it's already exists we're good. Otherwise, it will be created. Only issue that can occur is SecurityException thrown, so let's catch it.
+        } catch (Exception e){
+            System.out.println("BotFilesWorker (@"+server+")->constructor(): Failure:\n\tUnable to create directory to store DB file: \n\t" +e);
+            return;     // consistent = false;
+        }
+        if (!dir.exists()) {
+            System.out.println("BotFilesWorker (@"+server+")->constructor() failed:\n\tUnable to create directory to store files: " + dirLocation);      //TODO: notify requester
+            return;
+        }
+
+        this.consistent = resetFileWriter(false);
     }
 
     private boolean resetFileWriter(boolean reassign){
@@ -52,7 +56,7 @@ public class BotFilesWorker implements Worker {
             return true;
         }
         catch (java.io.IOException e){
-            System.out.println("Internal issue: BotFilesWorker->constructor() can't create file to store logs: "+this.filePath);
+            System.out.println("BotFilesWorker (@"+ircServer+")->resetFileWriter() failed:\n\tCan't create file to store logs: "+this.filePath);
             return false;
         }
     }
@@ -66,7 +70,7 @@ public class BotFilesWorker implements Worker {
      * argument[1] should be always 'subject'
      * */
     @Override
-    public void logAdd(String event, String initiatorArg, String messageArg) {
+    public boolean logAdd(String event, String initiatorArg, String messageArg) {
         switch (event){
             case "PRIVMSG":
                 PRIVMSG(initiatorArg, messageArg);
@@ -96,27 +100,31 @@ public class BotFilesWorker implements Worker {
                 this.prettyPrint("["+LocalTime.now().format(dateFormat)+"] "+event+" "+initiatorArg+" "+messageArg+"\n");   // TODO: QA @ big data
                 break;
         }
-    }
-    @Override
-    public void close() {
-        try {
-            fileWriter.close();
-        }
-        catch (java.io.IOException e){
-            System.out.println("Internal issue: BotFilesWorker->close() failed\n\tUnable to properly close file: "+this.filePath);        // Live with it.
-        }
-
+        return consistent;
     }
     private void prettyPrint(String string){
-        if (LocalDate.now().isAfter(fileWriterDay))
-            resetFileWriter(true);
-        try {
-            fileWriter.write(string);
-            fileWriter.flush();
-        } catch (IOException e) {
-            System.out.println("Internal issue: BotFilesWorker->prettyPrint() failed\n\tUnable to write logs of "+this.filePath+" because of internal failure in LocalTime representation.");
-            consistent = false;
-        }
+        //if (consistent) {                        // could be not-opened
+            try {
+                if (LocalDate.now().isAfter(fileWriterDay)) {
+                    if (!resetFileWriter(true)) {
+                        this.close();       // Error message already printed
+                        return;
+                    }
+                }
+                fileWriter.write(string);
+                fileWriter.flush();
+            } catch (IOException e) {
+                System.out.println("BotFilesWorker (@" + ircServer + ")->prettyPrint() failed\n\tUnable to write logs of " + this.filePath + " because of internal failure in LocalTime representation.");
+                this.close();
+                //consistent = false;
+            } catch (NullPointerException npe){
+                System.out.println("BotFilesWorker (@" + ircServer + ")->prettyPrint() failed\n\tUnable to write logs of " + this.filePath + " because file descriptor already closed/was not opened.");
+                consistent = false;
+            } catch (Exception unknowne){     // ??? No ideas. Just in case. Consider removing.
+                System.out.println("BotFilesWorker (@" + ircServer + ")->prettyPrint() failed\n\tUnable to write logs of " + this.filePath + " because of exception:\n\t"+unknowne);
+                this.close();
+            }
+        //}
     }
     private String genDate(){
         return "["+LocalTime.now().format(dateFormat)+"]  ";
@@ -159,5 +167,17 @@ public class BotFilesWorker implements Worker {
     }
     private void TOPIC(String initiatorArg, String messageArg) {
         this.prettyPrint(genDate()+"-!- "+getUserNameAndHost(initiatorArg)+"has changed topic to: "+messageArg.replaceAll("^.+?:", "")+"\n");
+    }
+
+    @Override
+    public void close() {
+        try {
+            if (fileWriter !=null)
+                fileWriter.close();
+        }
+        catch (java.io.IOException e){
+            System.out.println("BotFilesWorker (@"+ircServer+")->close() failed\n\tUnable to properly close file: "+this.filePath);        // Live with it.
+        }
+        this.consistent = false;
     }
 }

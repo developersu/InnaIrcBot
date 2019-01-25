@@ -22,18 +22,17 @@ public class BotDriver {
     }
     public static synchronized Worker getWorker(String serverName, String chanelName){
         if (serverDriver.containsKey(serverName)) {
-            switch (serverDriver.get(serverName)[0][0]) {
-                case "Files":
-                    return new BotFilesWorker(serverName, serverDriver.get(serverName)[1], chanelName);
-                case "SQLite":
-                    return new BotSQLiteWorker(serverName, serverDriver.get(serverName)[1], chanelName);
-                case "MongoDB":
+            switch (serverDriver.get(serverName)[0][0].toLowerCase()) {
+                case "files":
+                    BotFilesWorker botFilesWorker = new BotFilesWorker(serverName, serverDriver.get(serverName)[1], chanelName);
+                    return validateConstancy(botFilesWorker, serverName, chanelName);
+                case "sqlite":
+                    BotSQLiteWorker botSQLiteWorker = new BotSQLiteWorker(serverName, serverDriver.get(serverName)[1], chanelName);
+                    return validateConstancy(botSQLiteWorker, serverName, chanelName);
+                case "mongodb":
                     BotMongoWorker botMongoWorker = new BotMongoWorker(serverName, serverDriver.get(serverName)[1], chanelName);
-                    if (botMongoWorker.isConsistent())
-                        return botMongoWorker;
-                    else
-                        System.out.println("BotDriver: Unable to use MongoWorker for "+serverName+". Using ZeroWorker instead.");               // else, fall down and use BotZeroWorker.
-                case "Zero":
+                    return validateConstancy(botMongoWorker, serverName, chanelName);
+                case "zero":
                     return new BotZeroWorker();
                 default:
                     System.out.println("Configuration issue: BotDriver->getWorker() can't find required driver \""
@@ -43,5 +42,14 @@ public class BotDriver {
             }
         }
         return null;
+    }
+    private static Worker validateConstancy(Worker worker, String srv, String chan){     // synchronized?
+        if (worker.isConsistent()){
+            return worker;
+        }
+        else {
+            System.out.println("BotDriver: Unable to use "+worker.getClass().getSimpleName()+" for "+srv+"/"+chan+". Using ZeroWorker instead.");
+            return new BotZeroWorker();
+        }
     }
 }
