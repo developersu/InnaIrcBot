@@ -214,7 +214,7 @@ public class SystemConsumer implements Runnable{
                     proxyAList.put(message, new ArrayList<>());                         // Add new channel name to proxy watch-list
                     proxyAList.get(message).add(eventNum+" "+sender+" "+message);       // Add message to array linked
                     this.proxyRequired = true;                                          // Ask for proxy validators
-                    writerWorker.logAdd("[system]", "joined to channel ", "message");
+                    writerWorker.logAdd("[system]", "joined to channel ", message);
                 }
                 break;
             default:

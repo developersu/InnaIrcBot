@@ -15,8 +15,7 @@ public class StreamProvider {
         try {
             srvStreamMap.get(server).write(message+"\n");
             srvStreamMap.get(server).flush();
-
-            //System.out.println(message);
+            //System.out.println("W:"+message);
             // If this application says something, then pass it into system consumer thread to handle
             if (message.startsWith("PRIVMSG")) {
                 srvSysConsumersMap.get(server).println("INNA "+message);
