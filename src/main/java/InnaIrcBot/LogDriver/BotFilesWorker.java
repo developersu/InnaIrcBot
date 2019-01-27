@@ -160,7 +160,7 @@ public class BotFilesWorker implements Worker {
         this.prettyPrint(genDate()+"<<  "+getUserNameAndHost(initiatorArg)+"parted: "+messageArg.replaceAll("^.+?:","")+"\n");
     }
     private void QUIT(String initiatorArg, String messageArg){
-        this.prettyPrint(genDate()+"<<  "+getUserNameAndHost(initiatorArg)+" quit: "+messageArg.replaceAll("^.+?:","")+"\n");
+        this.prettyPrint(genDate()+"<<  "+getUserNameAndHost(initiatorArg)+"quit: "+messageArg.replaceAll("^.+?:","")+"\n");
     }
     private void NICK(String initiatorArg, String messageArg){
         this.prettyPrint(genDate()+"-!- "+getUserNameAndHost(initiatorArg)+"changed nick to: "+messageArg+"\n");
