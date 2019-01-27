@@ -16,6 +16,7 @@ public class StorageFile {
     private final String[] logDriverParameters;
     private final String botAdministratorPassword;
     private final String chanelConfigurationsPath;
+    private final String applicationLogDir;
 
     public String getServerName() { return serverName; }
     public int getServerPort() { return serverPort; }
@@ -32,6 +33,7 @@ public class StorageFile {
     public String[] getLogDriverParameters() { return logDriverParameters; }
     public String getBotAdministratorPassword() { return botAdministratorPassword; }
     public String getChanelConfigurationsPath() { return chanelConfigurationsPath; }
+    public String getApplicationLogDir() { return applicationLogDir; }
 
     public StorageFile(String serverName,
                 int serverPort,
@@ -47,7 +49,8 @@ public class StorageFile {
                 String logDriver,
                 String[] logDriverParameters,
                 String botAdministratorPassword,
-                String chanelConfigurationsPath){
+                String chanelConfigurationsPath,
+                String applicationLogDir){
         this.serverName = serverName;
         this.serverPort = serverPort;
         this.serverPass = serverPass;
@@ -63,5 +66,6 @@ public class StorageFile {
         this.logDriverParameters = logDriverParameters;
         this.botAdministratorPassword = botAdministratorPassword;
         this.chanelConfigurationsPath = chanelConfigurationsPath;
+        this.applicationLogDir = applicationLogDir;
     }
 }

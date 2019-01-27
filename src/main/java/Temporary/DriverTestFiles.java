@@ -6,7 +6,7 @@ import InnaIrcBot.LogDriver.Worker;
 public class DriverTestFiles {
 
     public static void main(String[] args){
-        if (BotDriver.setLogDriver("irc.tomsk.net", "files", new String[]{"/tmp/logs/"}))
+        if (BotDriver.setLogDriver("irc.tomsk.net", "files", new String[]{"/tmp/logs/"}, "/tmp/appLogs/"))
             System.out.println("DRVT_Files: Successful driver initiation");
         else {
             System.out.println("DRVT_Files: Failed driver initiation");

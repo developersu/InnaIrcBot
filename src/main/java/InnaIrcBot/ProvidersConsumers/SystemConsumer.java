@@ -4,7 +4,7 @@ import InnaIrcBot.Commanders.PrivateMsgCommander;
 import InnaIrcBot.Config.StorageFile;
 import InnaIrcBot.GlobalData;
 import InnaIrcBot.LogDriver.BotDriver;
-import InnaIrcBot.LogDriver.Worker;
+import InnaIrcBot.LogDriver.BotSystemWorker;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -18,7 +18,7 @@ import java.util.regex.Pattern;
 
 public class SystemConsumer implements Runnable{
     private BufferedReader reader;
-    private Worker writerWorker;
+    private BotSystemWorker writerWorker;
     private String nick;
     private String serverName;
     private Map<String, PrintWriter> channelsMap;
@@ -29,9 +29,8 @@ public class SystemConsumer implements Runnable{
     private PrivateMsgCommander commander;
 
     SystemConsumer(BufferedReader streamReader, String userNick, Map<String, PrintWriter>  map, StorageFile storage) {
-
-        this.writerWorker = BotDriver.getWorker(storage.getServerName(), "system");
-
+        //this.writerWorker = BotDriver.getWorker(storage.getServerName(), "system");
+        this.writerWorker = BotDriver.getSystemWorker(storage.getServerName());
         this.nick = userNick;
         this.serverName = storage.getServerName();
         this.channelsMap = map;
@@ -76,14 +75,15 @@ public class SystemConsumer implements Runnable{
                     if (getProxy(dataStrings[0], dataStrings[1], dataStrings[2]))
                         continue;                                                                       // TODO: check this. Continue is fair?
 
-                if (dataStrings[0].equals("PRIVMSG") && dataStrings[2].indexOf("\u0001") < dataStrings[2].lastIndexOf("\u0001"))
-                    replyCTCP(dataStrings[1], dataStrings[2].substring(dataStrings[2].indexOf(":")+1));
-                else if (Pattern.matches("(^[0-9]{3}$)|(^NICK$)|(^JOIN$)", dataStrings[0])){
+                if (dataStrings[0].equals("PRIVMSG") && dataStrings[2].indexOf("\u0001") < dataStrings[2].lastIndexOf("\u0001")) {
+                    replyCTCP(simplifyNick(dataStrings[1]), dataStrings[2].substring(dataStrings[2].indexOf(":") + 1));
+                }
+                else if (Pattern.matches("(^[0-9]{3}$)|(^NICK$)|(^JOIN$)|(^QUIT$)", dataStrings[0])){
                     handleNumeric(dataStrings[0], dataStrings[1], dataStrings[2]);
                 }
                 else if (dataStrings[0].equals("PRIVMSG")) {
                     commander.receiver(dataStrings[1], dataStrings[2].replaceAll("^.+?:", "").trim());
-                    writerWorker.logAdd("[system]", "PRIVMSG sent to", "commander");
+                    writerWorker.logAdd("[system]", "PRIVMSG from "+dataStrings[1]+" received: ", dataStrings[2].replaceAll("^.+?:", "").trim());
                 }
                 else if (dataStrings[0].equals("INNA")) {
                     String[] splitter;
@@ -123,30 +123,32 @@ public class SystemConsumer implements Runnable{
         }
     }
 
-    private void replyCTCP(String sender, String message){
+    private void replyCTCP(String sender, String message){      // got simplified nick
         if (message.equals("\u0001VERSION\u0001")){
-            StreamProvider.writeToStream(serverName,"NOTICE "+simplifyNick(sender)+" :\u0001VERSION "+ GlobalData.getAppVersion()+"\u0001");
-            writerWorker.logAdd("[system]", "catch/handled CTCP VERSION from", simplifyNick(sender));
-            System.out.println(sender+" "+message);
-            System.out.println("NOTICE "+simplifyNick(sender)+" \u0001VERSION "+ GlobalData.getAppVersion()+"\u0001");
+            StreamProvider.writeToStream(serverName,"NOTICE "+sender+" :\u0001VERSION "+ GlobalData.getAppVersion()+"\u0001");
+            writerWorker.logAdd("[system]", "catch/handled CTCP VERSION from", sender);
+            //System.out.println(sender+" "+message);
+            //System.out.println("NOTICE "+sender+" \u0001VERSION "+ GlobalData.getAppVersion()+"\u0001");
         }
         else if (message.startsWith("\u0001PING ") && message.endsWith("\u0001")){
-            StreamProvider.writeToStream(serverName,"NOTICE "+simplifyNick(sender)+" :"+message);
-            writerWorker.logAdd("[system]", "catch/handled CTCP PING from", simplifyNick(sender));
-            //System.out.println(":"+simplifyNick(sender)+" NOTICE "+sender.substring(0,sender.indexOf("!"))+" "+message);
+            StreamProvider.writeToStream(serverName,"NOTICE "+sender+" :"+message);
+            writerWorker.logAdd("[system]", "catch/handled CTCP PING from", sender);
+            //System.out.println(":"+sender+" NOTICE "+sender.substring(0,sender.indexOf("!"))+" "+message);
         }
         else if (message.equals("\u0001CLIENTINFO\u0001")){
-            StreamProvider.writeToStream(serverName,"NOTICE "+simplifyNick(sender)+" :\u0001CLIENTINFO ACTION PING VERSION TIME CLIENTINFO\u0001");
-            writerWorker.logAdd("[system]", "catch/handled CTCP CLIENTINFO from", simplifyNick(sender));
-            //System.out.println(":"+simplifyNick(sender)+" NOTICE "+sender.substring(0,sender.indexOf("!"))+" \u0001CLIENTINFO ACTION PING VERSION TIME CLIENTINFO\u0001");
+            StreamProvider.writeToStream(serverName,"NOTICE "+sender+" :\u0001CLIENTINFO ACTION PING VERSION TIME CLIENTINFO\u0001");
+            writerWorker.logAdd("[system]", "catch/handled CTCP CLIENTINFO from", sender);
+            //System.out.println(":"+sender+" NOTICE "+sender.substring(0,sender.indexOf("!"))+" \u0001CLIENTINFO ACTION PING VERSION TIME CLIENTINFO\u0001");
         }
         else if (message.equals("\u0001TIME\u0001")){
-            StreamProvider.writeToStream(serverName,"NOTICE "+simplifyNick(sender)+" :\u0001TIME "+ ZonedDateTime.now().format(DateTimeFormatter.RFC_1123_DATE_TIME)+"\u0001");
-            writerWorker.logAdd("[system]", "catch/handled CTCP TIME from", simplifyNick(sender));
-            //System.out.println(":"+simplifyNick(sender)+" NOTICE "+sender.substring(0,sender.indexOf("!"))+" \u0001TIME "+ ZonedDateTime.now().format(DateTimeFormatter.RFC_1123_DATE_TIME)+"\u0001");
-        } else
-            writerWorker.logAdd("[system]", "catch CTCP request \""+message+"\" from ", simplifyNick(sender));
+            StreamProvider.writeToStream(serverName,"NOTICE "+sender+" :\u0001TIME "+ ZonedDateTime.now().format(DateTimeFormatter.RFC_1123_DATE_TIME)+"\u0001");
+            writerWorker.logAdd("[system]", "catch/handled CTCP TIME from", sender);
+            //System.out.println(":"+sender+" NOTICE "+sender.substring(0,sender.indexOf("!"))+" \u0001TIME "+ ZonedDateTime.now().format(DateTimeFormatter.RFC_1123_DATE_TIME)+"\u0001");
+        }
+        else
+            writerWorker.logAdd("[system]", "catch unknown CTCP request \""+message+"\" from ", sender);
     }
+    
     private String simplifyNick(String nick){ return nick.replaceAll("!.*$",""); }
 
 
@@ -204,7 +206,7 @@ public class SystemConsumer implements Runnable{
             case "NICK":
                 if (sender.startsWith(nick+"!")) {
                     nick = message.trim();
-                    writerWorker.logAdd("[system]", "catch/handled own NICK change from:", sender+" to: "+message);
+                    writerWorker.logAdd("[system]", "catch own NICK change from:", sender+" to: "+message);
                 }
                 break;
             case "JOIN":
@@ -212,10 +214,11 @@ public class SystemConsumer implements Runnable{
                     proxyAList.put(message, new ArrayList<>());                         // Add new channel name to proxy watch-list
                     proxyAList.get(message).add(eventNum+" "+sender+" "+message);       // Add message to array linked
                     this.proxyRequired = true;                                          // Ask for proxy validators
+                    writerWorker.logAdd("[system]", "joined to channel ", "message");
                 }
                 break;
             default:
-                writerWorker.logAdd("[system]", "catch: "+eventNum+" from: "+sender+" :",message);
+                writerWorker.logAdd("[system]", "catch: "+eventNum+" from: "+sender+" :",message);  // TODO: QUIT comes here. Do something.
                 break;
         }
     }

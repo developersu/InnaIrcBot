@@ -6,7 +6,7 @@ import InnaIrcBot.LogDriver.Worker;
 public class DriverTestSQLite {
 
     public static void main(String[] args){
-        if (BotDriver.setLogDriver("irc.tomsk.net", "SQLite", new String[]{"/tmp/logs/mylogs"}))
+        if (BotDriver.setLogDriver("irc.tomsk.net", "SQLite", new String[]{"/tmp/logs/mylogs"}, "/tmp/appLogs/"))
                 System.out.println("DRVT_SQLite:Successful driver initiation");
         else {
             System.out.println("DRVT_SQLite:Failed driver initiation");

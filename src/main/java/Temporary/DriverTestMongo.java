@@ -9,7 +9,8 @@ public class DriverTestMongo {
         if (BotDriver.setLogDriver("irc.tomsk.net", "MongoDB", new String[]{"192.168.1.186:27017",
                                                                                                 "irc",
                                                                                                 "loper",
-                                                                                                "password"}))
+                                                                                                "password"},
+                                                                                "/tmp/appLogs/"))
             System.out.println("DRVT_Mongo:Successful driver initiation");
         else {
             System.out.println("DRVT_Mongo:Failed driver initiation");

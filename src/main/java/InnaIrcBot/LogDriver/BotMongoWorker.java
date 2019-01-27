@@ -25,8 +25,6 @@ public class BotMongoWorker implements Worker {                     //TODO consi
     private MongoCollection<Document> collection;
     private boolean consistent = false;
 
-    private boolean isItSystemThread = false;
-
     public BotMongoWorker(String ircServer, String[] driverParameters, String channel){
         this.ircServer = ircServer;
 
@@ -48,9 +46,6 @@ public class BotMongoWorker implements Worker {                     //TODO consi
         }
         else
             return; // consistent = false
-
-        if (channel.equals("system"))       // Set ircServer variable only if it's 'system' log thread.
-            this.isItSystemThread = true;
 
         if (!serversMap.containsKey(ircServer)){
             /*      // Leave this validations for better times.
@@ -132,6 +127,25 @@ public class BotMongoWorker implements Worker {                     //TODO consi
             consistent = false;
             // no need to close() obviously
         }
+
+        if (consistent){
+            ThingToCloseOnDie thing = new ThingToCloseOnDie() {
+                @Override
+                public void die() {
+                    if (serversMap.containsKey(ircServer)) {
+                        try {
+                            serversMap.get(ircServer).close();
+                            serversMap.remove(ircServer);
+                        }catch (Exception e){
+                            System.out.println("ThingToCloseOnDie: something went wrong when tried to close MongoDB connection\t\n"+e);
+                        }
+                    }
+                }
+            };
+
+            BotDriver.getSystemWorker(ircServer).registerInSystemWorker(thing);
+        }
+
     }
 
     @Override
@@ -194,13 +208,6 @@ public class BotMongoWorker implements Worker {                     //TODO consi
 
     @Override
     public void close() {
-        // If ircServer != null then it's system thread and when it's interrupted we have to close connection to DB for used server
-        // And remove it from HashMap
-        if (this.isItSystemThread && serversMap.containsKey(ircServer)) {
-            serversMap.get(ircServer).close();
-            serversMap.remove(ircServer);
-            //System.out.println("BotMongoWorker (@"+this.ircServer+")->close()");  // expected exit
-        }
         consistent = false;
     }
     private void close(String server) {

@@ -40,7 +40,7 @@ public class BotFilesWorker implements Worker {
             return;     // consistent = false;
         }
         if (!dir.exists()) {
-            System.out.println("BotFilesWorker (@"+server+")->constructor() failed:\n\tUnable to create directory to store files: " + dirLocation);      //TODO: notify requester
+            System.out.println("BotFilesWorker (@"+server+")->constructor() failed:\n\tUnable to create directory to store files: " + dirLocation);
             return;
         }
 

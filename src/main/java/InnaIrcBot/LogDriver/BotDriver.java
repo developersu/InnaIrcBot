@@ -4,17 +4,20 @@ import java.util.HashMap;
 
 public class BotDriver {
     private static HashMap<String, String[][]> serverDriver = new HashMap<>();
+
+    private static HashMap<String, BotSystemWorker> systemLogWorkerMap = new HashMap<>();
     /**
      * Define driver for desired server
      * */
     // TODO: add proxy worker for using with multiple drivers
-    public static synchronized boolean setLogDriver(String serverName, String driver, String[] driverParams){
+    public static synchronized boolean setLogDriver(String serverName, String driver, String[] driverParams, String applicationLogDir){
         if (!driver.isEmpty() && driverParams != null && driverParams.length > 0 && driverParams[0] != null && !driverParams[0].isEmpty()) {
             String[][] drvAndParams = {
                     {driver},
                     driverParams
             };
             serverDriver.put(serverName, drvAndParams);
+            systemLogWorkerMap.put(serverName, new BotSystemWorker(serverName, applicationLogDir));
             return true;
         }
         else
@@ -45,9 +48,12 @@ public class BotDriver {
         return new BotZeroWorker();
     }
     // If channel found that it's impossible to use defined worker from user settings and asking for use ZeroWorker
-    public static synchronized Worker getZeroWorker(){
-        return new BotZeroWorker();
+    public static synchronized Worker getZeroWorker(){ return new BotZeroWorker(); }
+
+    public static synchronized BotSystemWorker getSystemWorker(String serverName){
+        return systemLogWorkerMap.get(serverName);
     }
+
     private static Worker validateConstancy(Worker worker, String srv, String chan){     // synchronized?
         if (worker.isConsistent()){
             return worker;

@@ -69,7 +69,7 @@ public class DataProvider implements Runnable {
 
     public void run(){
         if (!ableToRun || !this.initConnection(rawStreamReader)
-                || !BotDriver.setLogDriver(serverName, configFile.getLogDriver(), configFile.getLogDriverParameters())) {   //Prepare logDriver for using in threads.
+                || !BotDriver.setLogDriver(serverName, configFile.getLogDriver(), configFile.getLogDriverParameters(), configFile.getApplicationLogDir())) {   //Prepare logDriver for using in threads.
             this.close();
             return;
         }
