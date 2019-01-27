@@ -78,7 +78,8 @@ public class StorageReader {
                                                                 "Files",
                                                                 new String[] {System.getProperty("user.home")},
                                                                 "pswd",
-                                                                System.getProperty("user.home")
+                                                                System.getProperty("user.home"),
+                                                                "/var/logs/"
                                                                 );
 
             Gson writingStorageObject = new GsonBuilder().setPrettyPrinting().create();

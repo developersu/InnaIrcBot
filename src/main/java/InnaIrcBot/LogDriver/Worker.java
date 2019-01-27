@@ -5,7 +5,7 @@ public interface Worker {
 
     boolean isConsistent();
 
-    void logAdd(String event,
+    boolean logAdd(String event,
                 String initiatorArg,
                 String messageArg);
 

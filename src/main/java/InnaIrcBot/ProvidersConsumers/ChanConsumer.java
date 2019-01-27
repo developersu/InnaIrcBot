@@ -54,12 +54,15 @@ public class ChanConsumer implements Runnable {
                 if (!trackUsers(dataStrings[0], dataStrings[1], dataStrings[2]))
                     continue;
 
-                writerWorker.logAdd(dataStrings[0], dataStrings[1], dataStrings[2]);
                 // Send to chanel commander thread
                 chanelCommanderPipe.println(data);
                 chanelCommanderPipe.flush();
                 //System.out.println("|"+dataStrings[0]+"|"+dataStrings[1]+"|"+dataStrings[2]+"|");
                 //System.out.println("Thread: "+this.channelName +"\n\tArray:"+ userList);
+
+                if (!writerWorker.logAdd(dataStrings[0], dataStrings[1], dataStrings[2])){      // Write logs, check if LogDriver consistent. If not:
+                    this.fixLogDriverIssues(dataStrings[0], dataStrings[1], dataStrings[2]);
+                }
 
                 if (endThread) {
                     reader.close();
@@ -69,7 +72,7 @@ public class ChanConsumer implements Runnable {
                 }
             }
         } catch (java.io.IOException e){
-                System.out.println("Internal issue: thread ChanConsumer->run() caused I/O exception:\n\t"+e);           // TODO: reconnect
+                System.out.println("ChanConsumer (@"+serverName+"/"+channelName+")->run(): Internal issue in thread: caused I/O exception:\n\t"+e);           // TODO: reconnect
         }
         writerWorker.close();
         //Chanel commander thread's pipe should be closed
@@ -82,25 +85,25 @@ public class ChanConsumer implements Runnable {
             case "PRIVMSG":                                                        // most common, we don't have to handle anything else
                 return true;
             case "JOIN":
-                addUsers(initiatorArg);
+                addUsers(simplifyNick(initiatorArg));
                 return true;
             case "PART":
-                delUsers(initiatorArg);
+                delUsers(simplifyNick(initiatorArg)); // nick non-simple
                 return true;
-            case "QUIT":                                               // TODO fix: use regex
-                if (userList.contains(initiatorArg.replaceAll("!.+$", ""))) {
-                    delUsers(initiatorArg);
+            case "QUIT":
+                if (userList.contains(simplifyNick(initiatorArg))) {
+                    delUsers(simplifyNick(initiatorArg)); // nick non-simple
                     return true;
                 } else
                     return false;       // user quit, but he/she is not in this channel
             case "KICK":
-                if (rejoin && nick.equals(subjectArg.substring(subjectArg.indexOf(" ") + 1, subjectArg.indexOf(" :"))))
+                if (rejoin && nick.equals(subjectArg.replaceAll("(^.+?\\s)|(\\s.+$)", "")))     // if it's me and I have rejoin policy 'Auto-Rejoin on kick'.
                     StreamProvider.writeToStream(serverName, "JOIN " + channelName);
-                delUsers(subjectArg.substring(subjectArg.indexOf(" ") + 1, subjectArg.indexOf(" :")));
+                delUsers(subjectArg.replaceAll("(^.+?\\s)|(\\s.+$)", ""));      // nick already simplified
                 return true;
             case "NICK":
-                if (userList.contains(initiatorArg.replaceAll("!.+$", ""))) {
-                    swapUsers(initiatorArg, subjectArg);
+                if (userList.contains(simplifyNick(initiatorArg))) {
+                    swapUsers(simplifyNick(initiatorArg), subjectArg);
                     return true;
                 } else {
                     return false;       // user changed nick, but he/she is not in this channel
@@ -111,19 +114,19 @@ public class ChanConsumer implements Runnable {
     }
 
     private void addUsers(String user){
-        if (!userList.contains(user.replaceAll("!.+$", "")))
-            userList.add(user.replaceAll("!.+$", ""));
+        if (!userList.contains(user))
+            userList.add(user);
     }
     private void delUsers(String user){
-        if (user.replaceAll("!.+$", "").equals(nick)) {
+        if (user.equals(nick)) {
             endThread = true;
         }
-        userList.remove(user.replaceAll("!.+$", ""));
+        userList.remove(user);
     }
     private void swapUsers(String userNickOld, String userNickNew){
-        userList.remove(userNickOld.replaceAll("!.+$", ""));
+        userList.remove(userNickOld);
         userList.add(userNickNew);
-        if (userNickOld.replaceAll("!.+$", "").equals(nick))
+        if (userNickOld.equals(nick))
             this.nick = userNickNew;
     }
     // Create ChanelCommander
@@ -142,9 +145,19 @@ public class ChanConsumer implements Runnable {
             return new PrintWriter(streamOut);
 
         } catch (IOException e) {
-            System.out.println("Internal issue: ChanConsumer->getChanelCommander() I/O exception while initialized child objects.");             // caused by Socket
+            System.out.println("ChanConsumer (@"+serverName+"/"+channelName+")->getChanelCommander(): Internal issue: I/O exception while initialized child objects:\n\t"+e); // caused by Socket
             endThread = true;
             return null;
+        }
+    }
+    private String simplifyNick(String nick){ return nick.replaceAll("!.*$",""); }
+
+    private void fixLogDriverIssues(String a, String b, String c){
+        System.out.println("ChanConsumer (@"+serverName+"/"+channelName+")->fixLogDriverIssues(): Some issues detected. Trying to fix...");
+        this.writerWorker = BotDriver.getWorker(serverName, channelName);       // Reset logDriver and try using the same one
+        if (!writerWorker.logAdd(a,b,c)){                                       // Write to it what was not written (most likely) and if it's still not consistent:
+            this.writerWorker = BotDriver.getZeroWorker();
+            System.out.println("ChanConsumer (@"+serverName+"/"+channelName+")->fixLogDriverIssues(): failed to use defined LogDriver. Using ZeroWorker instead.");
         }
     }
 }

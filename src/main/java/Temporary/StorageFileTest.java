@@ -19,6 +19,7 @@ public class StorageFileTest {
                 "",
                 new String[]{null},
                 "",
+                "",
                 ""
         );
 

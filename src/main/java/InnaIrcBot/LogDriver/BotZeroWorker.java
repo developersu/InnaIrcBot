@@ -5,7 +5,7 @@ public class BotZeroWorker implements Worker{
     public boolean isConsistent() {return true;}
 
     @Override
-    public void logAdd(String event, String initiatorArg, String messageArg) {}
+    public boolean logAdd(String event, String initiatorArg, String messageArg) { return true; }
 
     @Override
     public void close() {}

@@ -132,7 +132,11 @@ public class ChanelCommander implements Runnable {
                             for (i++; (i < cmdOrMsg.length) && !(cmdOrMsg[i].startsWith("\\")); i++)
                                 whatToSendRaw.append(cmdOrMsg[i]);
                             StreamProvider.writeToStream(server, whatToSendRaw.toString()); //TODO
-                            break;  //todo: add script
+                            break;                                                          //todo: add script
+                        case "\\whois":                                                     // result will be noted in 'system' log
+                            whoisAction(arg2);
+                            i++;
+                            break;
                         default:
                             i++;
                     }
@@ -140,6 +144,9 @@ public class ChanelCommander implements Runnable {
             }
     }
     /////////   /////////
+    private void whoisAction(String who){                                               // TODO: maybe we have to extend functionality to reuse received information.
+        StreamProvider.writeToStream(server, "WHOIS "+simplifyNick(who));
+    }
     private void msgAction(String[] messages, String who, boolean sendToPrivate){
         StringBuilder executiveStr = new StringBuilder();
         executiveStr.append("PRIVMSG ");
