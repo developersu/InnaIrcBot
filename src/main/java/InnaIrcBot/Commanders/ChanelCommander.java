@@ -94,48 +94,84 @@ public class ChanelCommander implements Runnable {
         for (String pattern : map.keySet())
             if (Pattern.matches(pattern, arg1)){       // NOTE: validation based on new nick    //TODO: parse here
                 String[] cmdOrMsg = map.get(pattern);
+
+                StringBuilder whatToSendStringBuilder;
+                ArrayList<String> whatToSendList;
                 for (int i = 0; i<cmdOrMsg.length;) {
-                    //switch (map.get(pattern)[0]){
-                    ArrayList<String> whatToSend;
                     switch (cmdOrMsg[i]) {
                         case "\\chanmsg":
-                            whatToSend = new ArrayList<>();
+                            whatToSendList = new ArrayList<>();
                             for (i++; (i < cmdOrMsg.length) && !(cmdOrMsg[i].startsWith("\\")); i++)
-                                whatToSend.add(cmdOrMsg[i]);
-                            msgAction(whatToSend.toArray(new String[0]), arg2, false);
+                                whatToSendList.add(cmdOrMsg[i]);
+                            msgAction(whatToSendList.toArray(new String[0]), arg2, false);
                             break;
                         case "\\privmsg":
-                            whatToSend = new ArrayList<>();
+                            whatToSendList = new ArrayList<>();
                             for (i++; (i < cmdOrMsg.length) && !(cmdOrMsg[i].startsWith("\\")); i++)
-                                whatToSend.add(cmdOrMsg[i]);
-                            msgAction(whatToSend.toArray(new String[0]), arg2, true);
+                                whatToSendList.add(cmdOrMsg[i]);
+                            msgAction(whatToSendList.toArray(new String[0]), arg2, true);
                             break;
                         case "\\ban":
                             banAction(arg2);
                             i++;
                             break;
                         case "\\kick":
-                            whatToSend = new ArrayList<>();
+                            whatToSendList = new ArrayList<>();
                             for (i++; (i < cmdOrMsg.length) && !(cmdOrMsg[i].startsWith("\\")); i++)
-                                whatToSend.add(cmdOrMsg[i]);
-                            kickAction(whatToSend.toArray(new String[0]), arg2);
+                                whatToSendList.add(cmdOrMsg[i]);
+                            kickAction(whatToSendList.toArray(new String[0]), arg2);
                             break;
                         case "\\kickban":
-                            whatToSend = new ArrayList<>();
+                            whatToSendList = new ArrayList<>();
                             for (i++; (i < cmdOrMsg.length) && !(cmdOrMsg[i].startsWith("\\")); i++)
-                                whatToSend.add(cmdOrMsg[i]);
+                                whatToSendList.add(cmdOrMsg[i]);
                             banAction(arg2);
-                            kickAction(whatToSend.toArray(new String[0]), arg2);
+                            kickAction(whatToSendList.toArray(new String[0]), arg2);
                             break;
                         case "\\raw":
-                            StringBuilder whatToSendRaw = new StringBuilder();
+                            whatToSendStringBuilder = new StringBuilder();
                             for (i++; (i < cmdOrMsg.length) && !(cmdOrMsg[i].startsWith("\\")); i++)
-                                whatToSendRaw.append(cmdOrMsg[i]);
-                            StreamProvider.writeToStream(server, whatToSendRaw.toString()); //TODO
+                                whatToSendStringBuilder.append(cmdOrMsg[i]);
+                            StreamProvider.writeToStream(server, whatToSendStringBuilder.toString()); //TODO
                             break;                                                          //todo: add script
                         case "\\whois":                                                     // result will be noted in 'system' log
                             whoisAction(arg2);
                             i++;
+                            break;
+                        case "\\cclientinfo":                                             // NOTE: All this handled by CTCPHelper instance
+                        case "\\cfinger":                                                 // C - publish request result to chan
+                        case "\\cping":
+                        case "\\csource":
+                        case "\\ctime":
+                        case "\\cuserinfo":
+                        case "\\cversion":
+                        case "\\pclientinfo":                                              // P - reply to privmsg
+                        case "\\pfinger":
+                        case "\\pping":
+                        case "\\psource":
+                        case "\\ptime":
+                        case "\\puserinfo":
+                        case "\\pversion":
+                            String CTCPType = cmdOrMsg[i];
+                            String objectRegexp = null;
+                            whatToSendStringBuilder = new StringBuilder();
+
+                            for (i++; (i < cmdOrMsg.length) && !(cmdOrMsg[i].startsWith("\\")); i++){
+                                if (objectRegexp == null && !cmdOrMsg[i].trim().isEmpty())
+                                    objectRegexp = cmdOrMsg[i].trim();
+                                else
+                                    whatToSendStringBuilder.append(cmdOrMsg[i]);
+                            }
+                            if (objectRegexp != null) {
+                                String objectToCtcp = arg1.trim().replaceAll(objectRegexp, "");     // note: trim() ?
+                                if (!objectToCtcp.isEmpty()){
+                                    if (CTCPType.startsWith("\\c"))
+                                        CTCPHelper.getInstance().registerRequest(server, chanel, CTCPType.substring(2).toUpperCase(), objectToCtcp, whatToSendStringBuilder.toString());
+                                    else
+                                        CTCPHelper.getInstance().registerRequest(server, simplifyNick(arg2), CTCPType.substring(2).toUpperCase(), objectToCtcp, whatToSendStringBuilder.toString());
+                                }
+                            }
+
                             break;
                         default:
                             i++;
@@ -147,6 +183,7 @@ public class ChanelCommander implements Runnable {
     private void whoisAction(String who){                                               // TODO: maybe we have to extend functionality to reuse received information.
         StreamProvider.writeToStream(server, "WHOIS "+simplifyNick(who));
     }
+
     private void msgAction(String[] messages, String who, boolean sendToPrivate){
         StringBuilder executiveStr = new StringBuilder();
         executiveStr.append("PRIVMSG ");
@@ -164,7 +201,7 @@ public class ChanelCommander implements Runnable {
         for (int i = 0; i < messages.length; i++){
             if ( ! messages[i].startsWith("\\"))
                 executiveStr.append(messages[i]);
-            else if (messages[i].equals("\\time"))
+            else if (messages[i].equals("\\time"))                                    // TODO: remove this shit
                 executiveStr.append(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
         }
         //System.out.println(executiveStr.toString());                               //TODO: debug

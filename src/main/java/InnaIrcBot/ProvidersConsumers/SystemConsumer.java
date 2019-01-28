@@ -1,5 +1,6 @@
 package InnaIrcBot.ProvidersConsumers;
 
+import InnaIrcBot.Commanders.CTCPHelper;
 import InnaIrcBot.Commanders.PrivateMsgCommander;
 import InnaIrcBot.Config.StorageFile;
 import InnaIrcBot.GlobalData;
@@ -29,7 +30,6 @@ public class SystemConsumer implements Runnable{
     private PrivateMsgCommander commander;
 
     SystemConsumer(BufferedReader streamReader, String userNick, Map<String, PrintWriter>  map, StorageFile storage) {
-        //this.writerWorker = BotDriver.getWorker(storage.getServerName(), "system");
         this.writerWorker = BotDriver.getSystemWorker(storage.getServerName());
         this.nick = userNick;
         this.serverName = storage.getServerName();
@@ -77,6 +77,7 @@ public class SystemConsumer implements Runnable{
 
                 if (dataStrings[0].equals("PRIVMSG") && dataStrings[2].indexOf("\u0001") < dataStrings[2].lastIndexOf("\u0001")) {
                     replyCTCP(simplifyNick(dataStrings[1]), dataStrings[2].substring(dataStrings[2].indexOf(":") + 1));
+                    //System.out.println("|"+dataStrings[1]+"|"+dataStrings[2].substring(dataStrings[2].indexOf(":") + 1)+"|");
                 }
                 else if (Pattern.matches("(^[0-9]{3}$)|(^NICK$)|(^JOIN$)|(^QUIT$)", dataStrings[0])){
                     handleNumeric(dataStrings[0], dataStrings[1], dataStrings[2]);
@@ -85,6 +86,10 @@ public class SystemConsumer implements Runnable{
                     commander.receiver(dataStrings[1], dataStrings[2].replaceAll("^.+?:", "").trim());
                     writerWorker.logAdd("[system]", "PRIVMSG from "+dataStrings[1]+" received: ", dataStrings[2].replaceAll("^.+?:", "").trim());
                 }
+                else if (dataStrings[0].equals("NOTICE")) {
+                    handleNotice(dataStrings[1], dataStrings[2].replaceAll("^.+?:", "").trim());
+                }
+
                 else if (dataStrings[0].equals("INNA")) {
                     String[] splitter;
                     if (dataStrings.length > 2){                                                        // Don't touch 'cuz it's important
@@ -104,9 +109,12 @@ public class SystemConsumer implements Runnable{
         }
     }
     private boolean getProxy(String eventNum, String sender, String message){                              //TODO: if can't join: like channel with password
-        if (eventNum.equals("353"))
+        if (eventNum.equals("353")) {
+            //writerWorker.logAdd("[proxy]", "catch: "+eventNum+" from: "+sender+" :",message);
             return false;               // never mind and let it flows as usual.
+        }
         else {
+            //writerWorker.logAdd("[proxy]", "catch: "+eventNum+" from: "+sender+" :",message);
             String chan = message.replaceAll("(\\s.?$)|(\\s.+?$)", "");
 
             if (eventNum.equals("QUIT") || eventNum.equals("NICK")) {
@@ -127,7 +135,6 @@ public class SystemConsumer implements Runnable{
         if (message.equals("\u0001VERSION\u0001")){
             StreamProvider.writeToStream(serverName,"NOTICE "+sender+" :\u0001VERSION "+ GlobalData.getAppVersion()+"\u0001");
             writerWorker.logAdd("[system]", "catch/handled CTCP VERSION from", sender);
-            //System.out.println(sender+" "+message);
             //System.out.println("NOTICE "+sender+" \u0001VERSION "+ GlobalData.getAppVersion()+"\u0001");
         }
         else if (message.startsWith("\u0001PING ") && message.endsWith("\u0001")){
@@ -136,7 +143,7 @@ public class SystemConsumer implements Runnable{
             //System.out.println(":"+sender+" NOTICE "+sender.substring(0,sender.indexOf("!"))+" "+message);
         }
         else if (message.equals("\u0001CLIENTINFO\u0001")){
-            StreamProvider.writeToStream(serverName,"NOTICE "+sender+" :\u0001CLIENTINFO ACTION PING VERSION TIME CLIENTINFO\u0001");
+            StreamProvider.writeToStream(serverName,"NOTICE "+sender+" :\u0001CLIENTINFO ACTION PING VERSION TIME CLIENTINFO SOURCE\u0001");
             writerWorker.logAdd("[system]", "catch/handled CTCP CLIENTINFO from", sender);
             //System.out.println(":"+sender+" NOTICE "+sender.substring(0,sender.indexOf("!"))+" \u0001CLIENTINFO ACTION PING VERSION TIME CLIENTINFO\u0001");
         }
@@ -145,12 +152,21 @@ public class SystemConsumer implements Runnable{
             writerWorker.logAdd("[system]", "catch/handled CTCP TIME from", sender);
             //System.out.println(":"+sender+" NOTICE "+sender.substring(0,sender.indexOf("!"))+" \u0001TIME "+ ZonedDateTime.now().format(DateTimeFormatter.RFC_1123_DATE_TIME)+"\u0001");
         }
+        else if (message.equals("\u0001SOURCE\u0001")){
+            StreamProvider.writeToStream(serverName,"NOTICE "+sender+" :\u0001SOURCE https://github.com/developersu/InnaIrcBot\u0001");
+            writerWorker.logAdd("[system]", "catch/handled CTCP TIME from", sender);
+            //System.out.println(":"+sender+" NOTICE "+sender.substring(0,sender.indexOf("!"))+" \u0001SOURCE "+ ZonedDateTime.now().format(DateTimeFormatter.RFC_1123_DATE_TIME)+"\u0001");
+        }
         else
             writerWorker.logAdd("[system]", "catch unknown CTCP request \""+message+"\" from ", sender);
     }
-    
+
     private String simplifyNick(String nick){ return nick.replaceAll("!.*$",""); }
 
+    private void handleNotice(String sender, String message){
+        writerWorker.logAdd("[system]", "NOTICE from "+sender+" received: ", message);
+        CTCPHelper.getInstance().handleCtcpReply(serverName, simplifyNick(sender), message);
+    }
 
     private void handleSpecial(String event, String chanel, String message){
         //System.out.println("|"+event+"|"+chanel+"|"+message+"|");
@@ -167,6 +183,7 @@ public class SystemConsumer implements Runnable{
                 writerWorker.logAdd("[system]", "catch/handled:", eventNum+" [nickname already in use]");
                 break;
             case "353":
+                writerWorker.logAdd("[system]", "catch/handled:", eventNum+" [RPL_NAMREPLY]");
                 String chan = message.substring(message.indexOf(" ")+3);
                 chan = chan.substring(0, chan.indexOf(" "));
                 if (proxyAList.containsKey(chan)) {
@@ -206,7 +223,7 @@ public class SystemConsumer implements Runnable{
             case "NICK":
                 if (sender.startsWith(nick+"!")) {
                     nick = message.trim();
-                    writerWorker.logAdd("[system]", "catch own NICK change from:", sender+" to: "+message);
+                    writerWorker.logAdd("[system]", "catch own NICK change:", sender+" to: "+message);
                 }
                 break;
             case "JOIN":
@@ -217,6 +234,16 @@ public class SystemConsumer implements Runnable{
                     writerWorker.logAdd("[system]", "joined to channel ", message);
                 }
                 break;
+            case "401":     // No such nick/channel
+                //System.out.println("|"+message.replaceAll("^(\\s)?.+?(\\s)|((\\s)?:No such nick/channel)","")+"|");
+                CTCPHelper.getInstance().handleErrorReply(serverName,  message.replaceAll("^(\\s)?.+?(\\s)|((\\s)?:No such nick/channel)",""));
+                writerWorker.logAdd("[system]", "catch: "+eventNum+" from: "+sender+" :",message+" [ok]");
+                break;
+                /*
+            case "NOTICE":
+                writerWorker.logAdd("[system]", eventNum+" from: "+sender+" received: ",message);
+                break;
+                */
             default:
                 writerWorker.logAdd("[system]", "catch: "+eventNum+" from: "+sender+" :",message);  // TODO: QUIT comes here. Do something.
                 break;

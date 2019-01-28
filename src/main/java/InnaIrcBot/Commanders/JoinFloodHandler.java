@@ -25,7 +25,7 @@ public class JoinFloodHandler {
         if(usersOnChanel.containsKey(userNick)){
             LocalDateTime timeOfFirstEvent = usersOnChanel.get(userNick).addLastGetFirst();
             if (timeOfFirstEvent.isAfter(LocalDateTime.now().minusSeconds(timeFrameInSeconds))) {               // If first event in the queue happened after 'timeFrameSeconds ago from now'
-                StreamProvider.writeToStream(server, "PRIVMSG  "+chanel+" :"+userNick+": join flood ("+eventBufferSize+" connections in "+timeFrameInSeconds+"seconds).\n"+
+                StreamProvider.writeToStream(server, "PRIVMSG  "+chanel+" :"+userNick+": join flood ("+eventBufferSize+" connections in "+timeFrameInSeconds+" seconds).\n"+
                                             "MODE "+chanel+" +b "+userNick+"!*@*");                         // Shut joins-liker down. By nick TODO: consider other ban methods
                 usersOnChanel.remove(userNick);                                                                 // Delete viewing history (in case op/hop decided to unban)
             }

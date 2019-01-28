@@ -1,0 +1,25 @@
+# NOTE: Filename should be servername#channel OR servernamechannel (is started not from '#'). It MUST have .csv extension and hold tab-separated-values. This example works for server='srv' and channel='#lpr'
+#Join Flood Control	Number of events	Time Frame in seconds	
+JoinFloodControl	5	10	
+#event	regexp	command	message_or_command	message_or_command	message_or_ N+1			
+msg	^!help(.+)?	\chanmsg	Ничего не знаю!
+join	^Мерзавец(.+)?!.*	\kickban	requested
+join	^Мальчиш_плохишь!.*	\kick	плохой!
+join	^Мальчиш_плохишь!.*	\ban	\privmsg	не возвращайся!
+nick	^Мимикрирую_под.*	\chanmsg	перестань!
+
+#event	regexp to trigger	CTCP (send to chan/privmsg)	message printed if not found
+msg	^cci.*	\cclientinfo		(^.+(\s|\t)+)	нет таких: 
+msg	^cf.*	\cfinger	(^.+(\s|\t)+)	не 	 понятно			 кто 	 это: 
+msg	^cp.*	\cping		(^.+(\s|\t)+)	ололо
+msg	^cs.*	\csource	(^.+(\s|\t)+)		пыщ	-пыщ	: 
+msg	^ct.*	\ctime		(^.+(\s|\t)+)	ыыы:
+msg	^cui.*	\cuserinfo	(^.+(\s|\t)+)	ыыыыы ы: 
+msg	^cv.*	\cversion	(^.+(\s|\t)+)
+msg	^pci.*	\pclientinfo	(^.+(\s|\t)+)	ололо: 
+msg	^pf.*	\pfinger	(^.+(\s|\t)+)		нет таких: 
+msg	^pp.*	\pping		(^.+(\s|\t)+)	нету: 
+msg	^ps.*	\psource	(^.+(\s|\t)+)		хаха: 
+msg	^pt.*	\ptime		(^.+(\s|\t)+)	олол: 
+msg	^pu.*	\puserinfo	(^.+(\s|\t)+)	пиу-пиу: 
+msg	^pv.*	\pversion	(^.+(\s|\t)+)	\chanmsg	отправлено!

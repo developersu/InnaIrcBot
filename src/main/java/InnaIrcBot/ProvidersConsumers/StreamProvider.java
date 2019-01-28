@@ -17,12 +17,12 @@ public class StreamProvider {
             srvStreamMap.get(server).flush();
             //System.out.println("W:"+message);
             // If this application says something, then pass it into system consumer thread to handle
-            if (message.startsWith("PRIVMSG")) {
+            if (message.startsWith("PRIVMSG ")) {
                 srvSysConsumersMap.get(server).println("INNA "+message);
                 srvSysConsumersMap.get(server).flush();
             }
         } catch (java.io.IOException e){
-            System.out.println("Internal issue: StreamProvider->writeToStream() caused I/O exception.");
+            System.out.println("Internal issue: StreamProvider->writeToStream() caused I/O exception:\n\t"+e);
         }
     }
     public static synchronized boolean setStream(String server, Socket socket){
@@ -31,7 +31,7 @@ public class StreamProvider {
             srvStreamMap.put(server, new OutputStreamWriter(outStream));
             return true;
         } catch (java.io.IOException e){
-            System.out.println("Internal issue: StreamProvider->setStream() caused I/O exception.");
+            System.out.println("Internal issue: StreamProvider->setStream() caused I/O exception:\n\t"+e);
             return false;
         }
     }
