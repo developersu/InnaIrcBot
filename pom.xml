@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>loper</groupId>
     <artifactId>InnaIrcBot</artifactId>
-    <version>0.5-SNAPSHOT</version>
+    <version>0.5.1-SNAPSHOT</version>
 
     <packaging>jar</packaging>
     <name>InnaIrcBot</name>

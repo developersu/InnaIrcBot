@@ -2,6 +2,7 @@ package InnaIrcBot.Commanders;
 
 import InnaIrcBot.ProvidersConsumers.StreamProvider;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -55,7 +56,10 @@ public class CTCPHelper {
                 if (current.isValid(currentTime)){
                     chanelOrUser = current.getRequesterChanelOrUser(whoReplied);
                     if ( chanelOrUser != null && current.getType().equals(whatReplied.replaceAll("\\s.*$", ""))) {
-                        StreamProvider.writeToStream(serverReplied, "PRIVMSG " + chanelOrUser + " :" + whoReplied + ": " + whatReplied);
+                        if (whatReplied.equals("PING inna"))
+                            StreamProvider.writeToStream(serverReplied, "PRIVMSG " + chanelOrUser + " :" + whoReplied + ": " + Duration.between(current.getCreationTime(), currentTime).toMillis()+"ms");
+                        else
+                            StreamProvider.writeToStream(serverReplied, "PRIVMSG " + chanelOrUser + " :" + whoReplied + ": " + whatReplied);
                         iterator.remove();
                     }
                 }
@@ -110,7 +114,6 @@ class CtcpRequest {
         this.notFoundMessage = notFoundMessage;
         this.CTCPtype = CTCPType;
     }
-    String getType(){ return CTCPtype; }
     String getRequesterChanelOrUser(String userResponds){      // return channel name
         if (userResponding.equals(userResponds))
             return requesterChanelOrUser;
@@ -120,6 +123,11 @@ class CtcpRequest {
     boolean isValid(LocalDateTime currentTime){
         return currentTime.isBefore(initiatedTime.plusSeconds(5));
     }
+
+    String getType(){ return CTCPtype; }
+
+    LocalDateTime getCreationTime(){ return initiatedTime; }
+
     String getNotFoundMessage(String userResponds){
         if (this.userResponding.equals(userResponds))
             if (notFoundMessage.isEmpty())
