@@ -43,6 +43,6 @@ Used libraries:
 - [ ] Deep configuration files validation
 - [x] Maven ~~or Gradle~~ build
 - [ ] ncurses-like or/and GUI configuration files (server/chanel setting) editor
-- [ ] CTCP support for using @ 'ChanelCommander'
+- [x] CTCP support for using @ 'ChanelCommander'
 - [ ] Access roles support (i.e. delegating some rights to another users)
 - [ ] Logs for application (partly implemented)
