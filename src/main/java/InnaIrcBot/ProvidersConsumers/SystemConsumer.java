@@ -75,21 +75,19 @@ public class SystemConsumer implements Runnable{
                     if (getProxy(dataStrings[0], dataStrings[1], dataStrings[2]))
                         continue;                                                                       // TODO: check this. Continue is fair?
 
-                if (dataStrings[0].equals("PRIVMSG") && dataStrings[2].indexOf("\u0001") < dataStrings[2].lastIndexOf("\u0001")) {
-                    replyCTCP(simplifyNick(dataStrings[1]), dataStrings[2].substring(dataStrings[2].indexOf(":") + 1));
-                    //System.out.println("|"+dataStrings[1]+"|"+dataStrings[2].substring(dataStrings[2].indexOf(":") + 1)+"|");
-                }
-                else if (Pattern.matches("(^[0-9]{3}$)|(^NICK$)|(^JOIN$)|(^QUIT$)", dataStrings[0])){
+                if (Pattern.matches("(^[0-9]{3}$)|(^NICK$)|(^JOIN$)|(^QUIT$)|(^NOTICE$)", dataStrings[0])){
                     handleNumeric(dataStrings[0], dataStrings[1], dataStrings[2]);
                 }
                 else if (dataStrings[0].equals("PRIVMSG")) {
-                    commander.receiver(dataStrings[1], dataStrings[2].replaceAll("^.+?:", "").trim());
-                    writerWorker.logAdd("[system]", "PRIVMSG from "+dataStrings[1]+" received: ", dataStrings[2].replaceAll("^.+?:", "").trim());
+                    if (dataStrings[2].indexOf("\u0001") < dataStrings[2].lastIndexOf("\u0001")) {
+                        replyCTCP(simplifyNick(dataStrings[1]), dataStrings[2].substring(dataStrings[2].indexOf(":") + 1));
+                        //System.out.println("|"+dataStrings[1]+"|"+dataStrings[2].substring(dataStrings[2].indexOf(":") + 1)+"|");
+                    }
+                    else {
+                        commander.receiver(dataStrings[1], dataStrings[2].replaceAll("^.+?:", "").trim());
+                        writerWorker.logAdd("[system]", "PRIVMSG from "+dataStrings[1]+" received: ", dataStrings[2].replaceAll("^.+?:", "").trim());
+                    }
                 }
-                else if (dataStrings[0].equals("NOTICE")) {
-                    handleNotice(dataStrings[1], dataStrings[2].replaceAll("^.+?:", "").trim());
-                }
-
                 else if (dataStrings[0].equals("INNA")) {
                     String[] splitter;
                     if (dataStrings.length > 2){                                                        // Don't touch 'cuz it's important
@@ -163,11 +161,6 @@ public class SystemConsumer implements Runnable{
 
     private String simplifyNick(String nick){ return nick.replaceAll("!.*$",""); }
 
-    private void handleNotice(String sender, String message){
-        writerWorker.logAdd("[system]", "NOTICE from "+sender+" received: ", message);
-        CTCPHelper.getInstance().handleCtcpReply(serverName, simplifyNick(sender), message);
-    }
-
     private void handleSpecial(String event, String chanel, String message){
         //System.out.println("|"+event+"|"+chanel+"|"+message+"|");
         if (channelsMap.containsKey(chanel)){
@@ -239,13 +232,14 @@ public class SystemConsumer implements Runnable{
                 CTCPHelper.getInstance().handleErrorReply(serverName,  message.replaceAll("^(\\s)?.+?(\\s)|((\\s)?:No such nick/channel)",""));
                 writerWorker.logAdd("[system]", "catch: "+eventNum+" from: "+sender+" :",message+" [ok]");
                 break;
-                /*
             case "NOTICE":
-                writerWorker.logAdd("[system]", eventNum+" from: "+sender+" received: ",message);
+                CTCPHelper.getInstance().handleCtcpReply(serverName, simplifyNick(sender), message.replaceAll("^.+?:", "").trim());
+                writerWorker.logAdd("[system]", "NOTICE from "+sender+" received: ", message.replaceAll("^.+?:", "").trim());
                 break;
-                */
+            case "QUIT":
+                break;
             default:
-                writerWorker.logAdd("[system]", "catch: "+eventNum+" from: "+sender+" :",message);  // TODO: QUIT comes here. Do something.
+                writerWorker.logAdd("[system]", "catch: "+eventNum+" from: "+sender+" :",message);  // TODO: QUIT comes here. Do something?
                 break;
         }
     }
