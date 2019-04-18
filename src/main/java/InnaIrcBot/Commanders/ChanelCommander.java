@@ -23,6 +23,9 @@ public class ChanelCommander implements Runnable {
     private boolean joinFloodTrackNeed  = false;
     private JoinFloodHandler jfh;
 
+    private boolean joinCloneTrackNeed  = false;         // todo:fix
+    private JoinCloneHandler jch;
+
     public ChanelCommander(BufferedReader streamReader, String serverName, String chan, String configFilePath){
         this.reader = streamReader;
         this.server = serverName;
@@ -50,6 +53,8 @@ public class ChanelCommander implements Runnable {
                     case "JOIN":
                         if (joinFloodTrackNeed)
                             jfh.track(simplifyNick(dataStrings[1]));
+                        if (joinCloneTrackNeed)
+                            jch.track(dataStrings[1]);
                         joinCame(dataStrings[1]);
                         break;
                     case "PRIVMSG":
@@ -250,12 +255,25 @@ public class ChanelCommander implements Runnable {
                             jfh = new JoinFloodHandler(events, timeFrame, server, chanel);
                             joinFloodTrackNeed = true;
                         } else {
-                            System.out.println("Internal issue: thread ChanelCommander->parse(): 'Number of events' and/or 'Time Frame in seconds' should be greater then 0");
+                            System.out.println("Internal issue: thread ChanelCommander->parse(): 'Number of events' and/or 'Time Frame in seconds' should be greater than 0");
                         }
                     }
                     else
-                        System.out.println("Internal issue: thread ChanelCommander->parse(): 'Number of events' and/or 'Time Frame in seconds' should be numbers greater then 0");
+                        System.out.println("Internal issue: thread ChanelCommander->parse(): 'Number of events' and/or 'Time Frame in seconds' should be numbers greater than 0");
                     break;
+                case "joinclonecontrol":
+                    if (!directive[1].isEmpty() && !directive[2].isEmpty() && Pattern.matches("^[0-9]+?$", directive[1].trim())) {
+                        int events = Integer.valueOf(directive[1].trim());
+                        if (events > 0){
+                            jch = new JoinCloneHandler(directive[2], events, server, chanel);       // TODO: REMOVE
+                            joinCloneTrackNeed = true;
+                        }
+                        else {
+                            System.out.println("Internal issue: thread ChanelCommander->parse(): 'Number of events' should be greater than 0");
+                        }
+                    } else {
+                        System.out.println("Internal issue: thread ChanelCommander->parse(): 'Number of events' should be greater than 0 and pattern shouldn't be empty.");
+                    }
             }
         }
     }

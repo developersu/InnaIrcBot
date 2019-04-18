@@ -9,6 +9,7 @@ import InnaIrcBot.LogDriver.BotSystemWorker;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -28,6 +29,8 @@ public class SystemConsumer implements Runnable{
     private StorageFile storageFile;
 
     private PrivateMsgCommander commander;
+
+    private LocalDateTime lastCTCPReplyTime;
 
     SystemConsumer(BufferedReader streamReader, String userNick, Map<String, PrintWriter>  map, StorageFile storage) {
         this.writerWorker = BotDriver.getSystemWorker(storage.getServerName());
@@ -49,6 +52,8 @@ public class SystemConsumer implements Runnable{
             message.append("\n");
         }
         StreamProvider.writeToStream(serverName,message.toString());
+
+        lastCTCPReplyTime = LocalDateTime.now();
     }
 
     @Override
@@ -130,33 +135,31 @@ public class SystemConsumer implements Runnable{
     }
 
     private void replyCTCP(String sender, String message){      // got simplified nick
-        if (message.equals("\u0001VERSION\u0001")){
-            StreamProvider.writeToStream(serverName,"NOTICE "+sender+" :\u0001VERSION "+ GlobalData.getAppVersion()+"\u0001");
-            writerWorker.logAdd("[system]", "catch/handled CTCP VERSION from", sender);
-            //System.out.println("NOTICE "+sender+" \u0001VERSION "+ GlobalData.getAppVersion()+"\u0001");
+        if (lastCTCPReplyTime.isBefore(LocalDateTime.now().minusSeconds(3))) {                                                 // TODO: Consider moving to config file. Now set to 3 sec
+            lastCTCPReplyTime = LocalDateTime.now();
+            if (message.equals("\u0001VERSION\u0001")) {
+                StreamProvider.writeToStream(serverName, "NOTICE " + sender + " :\u0001VERSION " + GlobalData.getAppVersion() + "\u0001");
+                writerWorker.logAdd("[system]", "catch/handled CTCP VERSION from", sender);
+                //System.out.println("NOTICE "+sender+" \u0001VERSION "+ GlobalData.getAppVersion()+"\u0001");
+            } else if (message.startsWith("\u0001PING ") && message.endsWith("\u0001")) {
+                StreamProvider.writeToStream(serverName, "NOTICE " + sender + " :" + message);
+                writerWorker.logAdd("[system]", "catch/handled CTCP PING from", sender);
+                //System.out.println(":"+sender+" NOTICE "+sender.substring(0,sender.indexOf("!"))+" "+message);
+            } else if (message.equals("\u0001CLIENTINFO\u0001")) {
+                StreamProvider.writeToStream(serverName, "NOTICE " + sender + " :\u0001CLIENTINFO ACTION PING VERSION TIME CLIENTINFO SOURCE\u0001");
+                writerWorker.logAdd("[system]", "catch/handled CTCP CLIENTINFO from", sender);
+                //System.out.println(":"+sender+" NOTICE "+sender.substring(0,sender.indexOf("!"))+" \u0001CLIENTINFO ACTION PING VERSION TIME CLIENTINFO\u0001");
+            } else if (message.equals("\u0001TIME\u0001")) {
+                StreamProvider.writeToStream(serverName, "NOTICE " + sender + " :\u0001TIME " + ZonedDateTime.now().format(DateTimeFormatter.RFC_1123_DATE_TIME) + "\u0001");
+                writerWorker.logAdd("[system]", "catch/handled CTCP TIME from", sender);
+                //System.out.println(":"+sender+" NOTICE "+sender.substring(0,sender.indexOf("!"))+" \u0001TIME "+ ZonedDateTime.now().format(DateTimeFormatter.RFC_1123_DATE_TIME)+"\u0001");
+            } else if (message.equals("\u0001SOURCE\u0001")) {
+                StreamProvider.writeToStream(serverName, "NOTICE " + sender + " :\u0001SOURCE https://github.com/developersu/InnaIrcBot\u0001");
+                writerWorker.logAdd("[system]", "catch/handled CTCP TIME from", sender);
+                //System.out.println(":"+sender+" NOTICE "+sender.substring(0,sender.indexOf("!"))+" \u0001SOURCE "+ ZonedDateTime.now().format(DateTimeFormatter.RFC_1123_DATE_TIME)+"\u0001");
+            } else
+                writerWorker.logAdd("[system]", "catch unknown CTCP request \"" + message + "\" from ", sender);
         }
-        else if (message.startsWith("\u0001PING ") && message.endsWith("\u0001")){
-            StreamProvider.writeToStream(serverName,"NOTICE "+sender+" :"+message);
-            writerWorker.logAdd("[system]", "catch/handled CTCP PING from", sender);
-            //System.out.println(":"+sender+" NOTICE "+sender.substring(0,sender.indexOf("!"))+" "+message);
-        }
-        else if (message.equals("\u0001CLIENTINFO\u0001")){
-            StreamProvider.writeToStream(serverName,"NOTICE "+sender+" :\u0001CLIENTINFO ACTION PING VERSION TIME CLIENTINFO SOURCE\u0001");
-            writerWorker.logAdd("[system]", "catch/handled CTCP CLIENTINFO from", sender);
-            //System.out.println(":"+sender+" NOTICE "+sender.substring(0,sender.indexOf("!"))+" \u0001CLIENTINFO ACTION PING VERSION TIME CLIENTINFO\u0001");
-        }
-        else if (message.equals("\u0001TIME\u0001")){
-            StreamProvider.writeToStream(serverName,"NOTICE "+sender+" :\u0001TIME "+ ZonedDateTime.now().format(DateTimeFormatter.RFC_1123_DATE_TIME)+"\u0001");
-            writerWorker.logAdd("[system]", "catch/handled CTCP TIME from", sender);
-            //System.out.println(":"+sender+" NOTICE "+sender.substring(0,sender.indexOf("!"))+" \u0001TIME "+ ZonedDateTime.now().format(DateTimeFormatter.RFC_1123_DATE_TIME)+"\u0001");
-        }
-        else if (message.equals("\u0001SOURCE\u0001")){
-            StreamProvider.writeToStream(serverName,"NOTICE "+sender+" :\u0001SOURCE https://github.com/developersu/InnaIrcBot\u0001");
-            writerWorker.logAdd("[system]", "catch/handled CTCP TIME from", sender);
-            //System.out.println(":"+sender+" NOTICE "+sender.substring(0,sender.indexOf("!"))+" \u0001SOURCE "+ ZonedDateTime.now().format(DateTimeFormatter.RFC_1123_DATE_TIME)+"\u0001");
-        }
-        else
-            writerWorker.logAdd("[system]", "catch unknown CTCP request \""+message+"\" from ", sender);
     }
 
     private String simplifyNick(String nick){ return nick.replaceAll("!.*$",""); }

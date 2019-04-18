@@ -1,6 +1,8 @@
 # NOTE: Filename should be servername#channel OR servernamechannel (is started not from '#'). It MUST have .csv extension and hold tab-separated-values. This example works for server='srv' and channel='#lpr'
 #Join Flood Control	Number of events	Time Frame in seconds	
-JoinFloodControl	5	10	
+JoinFloodControl	5	10
+#Join Clone Control Number of events    Pattern
+JoinCloneControl    1   ^.+[0-9]+?!.*$
 #event	regexp	command	message_or_command	message_or_command	message_or_ N+1			
 msg	^!help(.+)?	\chanmsg	Ничего не знаю!
 join	^Мерзавец(.+)?!.*	\kickban	requested
