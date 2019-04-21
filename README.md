@@ -13,7 +13,7 @@ Another one IRC bot in deep-deep beta.
 * rusnet - send '/nickserv IDENTIFY mySecretPass'
 * freenode - send '/msg nickserv IDENTIFY mySecretPass'
 
-"logDriver" could be "Files", "SQLite" or "Zero"
+"logDriver" could be "Files", "SQLite", "MongoDB" or "Zero"
 * Files - log everything to files using /yourPathSet/serverName/#chanelName_YYYY-MM-DD.txt format.
 * SQLite - use /yourPathSet/server.db (or /yourPathSet/yourFileName.db) sqlite file.
 * MongoDB - write files to MongoDB. See ConfigurationExamples folder.
