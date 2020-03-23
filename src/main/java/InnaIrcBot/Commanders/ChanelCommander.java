@@ -120,6 +120,10 @@ public class ChanelCommander implements Runnable {
                             banAction(arg2);
                             i++;
                             break;
+                        case "\\voice":
+                            voiceAction(arg2);
+                            i++;
+                            break;
                         case "\\kick":
                             whatToSendList = new ArrayList<>();
                             for (i++; (i < cmdOrMsg.length) && !(cmdOrMsg[i].startsWith("\\")); i++)
@@ -215,6 +219,9 @@ public class ChanelCommander implements Runnable {
     private void banAction(String whom){
         StreamProvider.writeToStream(server, "MODE "+chanel+" +b "+simplifyNick(whom)+"*!*@*");
         StreamProvider.writeToStream(server, "MODE "+chanel+" +b "+"*!*@"+whom.replaceAll("^.+@",""));
+    }
+    private void voiceAction(String whom){
+        StreamProvider.writeToStream(server, "MODE "+chanel+" +v "+simplifyNick(whom));
     }
     private void kickAction(String[] messages, String whom){
         StringBuilder executiveStr = new StringBuilder();

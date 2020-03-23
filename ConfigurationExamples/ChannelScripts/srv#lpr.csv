@@ -9,6 +9,7 @@ join	^Мерзавец(.+)?!.*	\kickban	requested
 join	^Мальчиш_плохишь!.*	\kick	плохой!
 join	^Мальчиш_плохишь!.*	\ban	\privmsg	не возвращайся!
 nick	^Мимикрирую_под.*	\chanmsg	перестань!
+nick	^МилашкаБеляш.*	\voice
 
 #event	regexp to trigger	CTCP (send to chan/privmsg)	message printed if not found
 msg	^cci.*	\cclientinfo		(^.+(\s|\t)+)	нет таких: 
