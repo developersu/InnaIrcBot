@@ -2,7 +2,7 @@ package InnaIrcBot.ProvidersConsumers;
 
 import InnaIrcBot.config.ConfigurationFile;
 import InnaIrcBot.IrcChannel;
-import InnaIrcBot.LogDriver.BotDriver;
+import InnaIrcBot.logging.LogDriver;
 import InnaIrcBot.ReconnectControl;
 
 import java.io.*;
@@ -16,16 +16,16 @@ import java.util.concurrent.BlockingQueue;
 
 public class DataProvider implements Runnable {
     private final ConfigurationFile configurationFile;
-    private final String serverName;
+    private final String server;
     private final String nickName;
-    private BufferedReader rawStreamReader;
+    private BufferedReader mainReader;
 
     /**
      * Initiate connection and prepare input/output streams for run()
      * */
     public DataProvider(ConfigurationFile configurationFile){
         this.configurationFile = configurationFile;
-        this.serverName = configurationFile.getServerName();
+        this.server = configurationFile.getServerName();
         this.nickName = configurationFile.getUserNick();
     }
 
@@ -35,17 +35,16 @@ public class DataProvider implements Runnable {
         } catch (Exception e){
             System.out.println("Internal issue: DataProvider->run() caused exception:\n\t"+e.getMessage());
             e.printStackTrace();
-        }
 
-        ReconnectControl.register(serverName);
-
-        if (! BotDriver.setLogDriver(serverName,
-                configurationFile.getLogDriver(),
-                configurationFile.getLogDriverParameters(),
-                configurationFile.getApplicationLogDir())) {   //Prepare logDriver for using in threads.)
-            this.close();
+            close();
             return;
         }
+
+        ReconnectControl.register(server);
+
+        LogDriver.setLogDriver(server,
+                configurationFile.getLogDriverConfiguration(),
+                configurationFile.getApplicationLogDir());
 
         /* Used for sending data into consumers objects*/
         Map<String, IrcChannel> ircChannels = Collections.synchronizedMap(new HashMap<>());
@@ -57,19 +56,19 @@ public class DataProvider implements Runnable {
                 new SystemConsumer(systemConsumerQueue, nickName, ircChannels, this.configurationFile));
         SystemConsumerThread.start();
 
-        StreamProvider.setSysConsumer(serverName, systemConsumerQueue);    // Register system consumer at StreamProvider
+        StreamProvider.setSysConsumer(server, systemConsumerQueue);    // Register system consumer at StreamProvider
 
         ircChannels.put(systemConsumerChannel.toString(), systemConsumerChannel);        // Not sure that PrintWriter is thread-safe..
         ////////////////////////////////////// Start loop //////////////////////////////////////////////////////////////
-        StreamProvider.writeToStream(serverName,"NICK "+this.nickName);
-        StreamProvider.writeToStream(serverName,"USER "+ configurationFile.getUserIdent()+" 8 * :"+ configurationFile.getUserRealName());       // TODO: Add usermode 4 rusnet
+        StreamProvider.writeToStream(server,"NICK "+this.nickName);
+        StreamProvider.writeToStream(server,"USER "+ configurationFile.getUserIdent()+" 8 * :"+ configurationFile.getUserRealName());       // TODO: Add usermode 4 rusnet
 
         try {
             String rawMessage;
             String[] rawStrings;    // prefix[0] command[1] command-parameters\r\n[2]
             //if there is no prefix, you should assume the message came from your client.
 
-            while ((rawMessage = rawStreamReader.readLine()) != null) {
+            while ((rawMessage = mainReader.readLine()) != null) {
                 System.out.println(rawMessage);
                 if (rawMessage.startsWith(":")) {
                     rawStrings = rawMessage
@@ -101,7 +100,7 @@ public class DataProvider implements Runnable {
                 }
             }
         } catch (IOException e){
-            System.out.println("Socket issue: I/O exception");                  //Connection closed. TODO: MAYBE try reconnect
+            System.out.println("Socket issue: I/O exception: "+e.getMessage());                  //Connection closed. TODO: MAYBE try reconnect
         }
         finally {
             SystemConsumerThread.interrupt();
@@ -111,7 +110,7 @@ public class DataProvider implements Runnable {
 
     private void connect() throws Exception{
         final int port = configurationFile.getServerPort();
-        InetAddress inetAddress = InetAddress.getByName(serverName);
+        InetAddress inetAddress = InetAddress.getByName(server);
         Socket socket = new Socket();              // TODO: set timeout?
         for (int i = 0; i < 5; i++) {
             socket.connect(new InetSocketAddress(inetAddress, port), 5000); // 5sec
@@ -121,20 +120,19 @@ public class DataProvider implements Runnable {
         if (! socket.isConnected())
             throw new Exception("Unable to connect server.");
 
-        StreamProvider.setStream(serverName, socket);
+        StreamProvider.setStream(server, socket);
 
         InputStream inStream = socket.getInputStream();
         InputStreamReader isr = new InputStreamReader(inStream, StandardCharsets.UTF_8);  //TODO set charset in options;
-        rawStreamReader = new BufferedReader(isr);
+        mainReader = new BufferedReader(isr);
     }
 
     private void sendPingReply(String rawData){
-        StreamProvider.writeToStream(serverName,"PONG :" + rawData.replace("PING :", ""));
+        StreamProvider.writeToStream(server,"PONG :" + rawData.replace("PING :", ""));
     }
 
-    //HANDLE ALWAYS in case thread decided to die
     private void close(){
-        StreamProvider.delStream(serverName);
-        ReconnectControl.notify(serverName);
+        StreamProvider.delStream(server);
+        ReconnectControl.notify(server);
     }
 }

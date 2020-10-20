@@ -1,22 +1,23 @@
-package InnaIrcBot.LogDriver;
+package InnaIrcBot.logging;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
-public class BotSystemWorker implements SystemWorker{
+public class WorkerSystem{
 
     private FileWriter fileWriter;
     private final DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("HH:mm:ss");
-    private ThingToCloseOnDie thingToCloseOnDie;     // call .die() method of this classes when this (system log class) dies.
+    private Closeable thingToCloseOnDie;     // call .close() method of this classes when this (system log class) dies.
 
     private final String server;
 
     private boolean consistent = false;
 
-    public BotSystemWorker(String server, String appLogDir){
+    public WorkerSystem(String server, String appLogDir){
         this.server = server;
 
         if (appLogDir.isEmpty()) {
@@ -53,7 +54,6 @@ public class BotSystemWorker implements SystemWorker{
         return "["+ LocalTime.now().format(dateFormat)+"]  ";
     }
 
-    @Override
     public void logAdd(String event, String initiatorArg, String messageArg) {
         if (consistent) {
             try {
@@ -69,19 +69,16 @@ public class BotSystemWorker implements SystemWorker{
         System.out.println(genDate() + event + " " + initiatorArg + " " + messageArg + "\n");
     }
 
-    @Override
-    public void registerInSystemWorker(ThingToCloseOnDie thing){
+    public void registerInSystemWorker(Closeable thing){
         if (this.thingToCloseOnDie == null){        // only one needed
             this.thingToCloseOnDie = thing;
         }
     }
 
-    @Override
     public void close() {
-        if (thingToCloseOnDie != null)
-            thingToCloseOnDie.die();
-
         try {
+            if (thingToCloseOnDie != null)
+                thingToCloseOnDie.close();
             fileWriter.close();
         }
         catch (IOException | NullPointerException ignore){}

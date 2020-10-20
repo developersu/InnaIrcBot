@@ -5,7 +5,7 @@ Another one IRC bot in deep-deep beta.
 ## License
 Source code spreads under the GNU General Public License v3 or higher. Please see LICENSE file.
 
-####Used libraries:
+#### Used libraries:
 * Apache commons CLI: https://commons.apache.org/proper/commons-cli/
 * GSON: https://github.com/google/gson
 * sqliteJDBC: https://bitbucket.org/xerial/sqlite-jdbc

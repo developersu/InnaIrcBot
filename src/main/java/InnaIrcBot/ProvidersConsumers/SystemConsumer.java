@@ -6,8 +6,8 @@ import InnaIrcBot.ReconnectControl;
 import InnaIrcBot.config.ConfigurationFile;
 import InnaIrcBot.GlobalData;
 import InnaIrcBot.IrcChannel;
-import InnaIrcBot.LogDriver.BotDriver;
-import InnaIrcBot.LogDriver.BotSystemWorker;
+import InnaIrcBot.logging.LogDriver;
+import InnaIrcBot.logging.WorkerSystem;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -19,7 +19,7 @@ import java.util.concurrent.BlockingQueue;
 
 public class SystemConsumer implements Runnable{
     private final BlockingQueue<String> systemQueue;
-    private BotSystemWorker writerWorker;
+    private WorkerSystem writerWorker;
     private String nick;
     private String serverName;
     private final Map<String, IrcChannel> channels;
@@ -34,7 +34,7 @@ public class SystemConsumer implements Runnable{
 
     SystemConsumer(BlockingQueue<String> systemQueue, String userNick, Map<String, IrcChannel> channels, ConfigurationFile configurationFile) {
         this.systemQueue = systemQueue;
-        this.writerWorker = BotDriver.getSystemWorker(configurationFile.getServerName());
+        this.writerWorker = LogDriver.getSystemWorker(configurationFile.getServerName());
         this.nick = userNick;
         this.serverName = configurationFile.getServerName();
         this.channels = channels;

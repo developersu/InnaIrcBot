@@ -3,8 +3,8 @@ package InnaIrcBot.ProvidersConsumers;
 import InnaIrcBot.Commanders.ChanelCommander;
 import InnaIrcBot.GlobalData;
 import InnaIrcBot.IrcChannel;
-import InnaIrcBot.LogDriver.BotDriver;
-import InnaIrcBot.LogDriver.Worker;
+import InnaIrcBot.logging.LogDriver;
+import InnaIrcBot.logging.Worker;
 import InnaIrcBot.config.ConfigurationManager;
 
 import java.time.LocalTime;
@@ -38,7 +38,7 @@ public class ChanConsumer implements Runnable {
         this.chanConsumerQueue = thisIrcChannel.getChannelQueue();
         this.serverName = serverName;
         this.channelName = thisIrcChannel.toString();
-        this.writerWorker = BotDriver.getWorker(serverName, channelName);
+        this.writerWorker = LogDriver.getWorker(serverName, channelName);
         this.userList = new ArrayList<>();
         this.nick = ownNick;
         this.rejoin = ConfigurationManager.getConfiguration(serverName).getRejoinOnKick();
@@ -145,9 +145,9 @@ public class ChanConsumer implements Runnable {
 
     private void fixLogDriverIssues(String a, String b, String c){
         System.out.println("ChanConsumer (@"+serverName+"/"+channelName+")->fixLogDriverIssues(): Some issues detected. Trying to fix...");
-        this.writerWorker = BotDriver.getWorker(serverName, channelName);       // Reset logDriver and try using the same one
+        this.writerWorker = LogDriver.getWorker(serverName, channelName);       // Reset logDriver and try using the same one
         if (! writerWorker.logAdd(a, b, c)){                                       // Write to it what was not written (most likely) and if it's still not consistent:
-            this.writerWorker = BotDriver.getZeroWorker();
+            this.writerWorker = LogDriver.getZeroWorker();
             System.out.println("ChanConsumer (@"+serverName+"/"+channelName+")->fixLogDriverIssues(): failed to use defined LogDriver. Using ZeroWorker instead.");
         }
     }

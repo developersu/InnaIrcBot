@@ -18,6 +18,8 @@ public class ConfigurationFile {
     private String chanelConfigurationsPath;
     private String applicationLogDir;
 
+    private LogDriverConfiguration logDriverConfiguration;
+
     public ConfigurationFile(String serverName,
                              int serverPort,
                              String serverPass,
@@ -63,8 +65,11 @@ public class ConfigurationFile {
     public String getUserNickAuthStyle() { return nonNullString(userNickAuthStyle); }
     public String getUserMode() { return nonNullString(userMode); }
     public boolean getRejoinOnKick() { return rejoinOnKick; }
-    public String getLogDriver() { return nonNullString(logDriver); }
-    public String[] getLogDriverParameters() { return logDriverParameters; }
+
+    public LogDriverConfiguration getLogDriverConfiguration(){
+        return new LogDriverConfiguration(nonNullString(logDriver).toLowerCase(), logDriverParameters);
+    }
+
     public String getBotAdministratorPassword() { return nonNullString(botAdministratorPassword); }
     public String getChanelConfigurationsPath() { return nonNullString(chanelConfigurationsPath); }
     public String getApplicationLogDir() { return nonNullString(applicationLogDir); }

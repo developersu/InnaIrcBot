@@ -1,4 +1,4 @@
-package InnaIrcBot.LogDriver;
+package InnaIrcBot.logging;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -8,7 +8,7 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.regex.Pattern;
 
-public class BotFilesWorker implements Worker {
+public class WorkerFiles implements Worker {
     private final String channel;
     private String filePath;
     private final DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("HH:mm:ss");
@@ -17,7 +17,7 @@ public class BotFilesWorker implements Worker {
 
     private boolean consistent;
 
-    public BotFilesWorker(String server, String[] driverParameters, String channel){
+    public WorkerFiles(String server, String[] driverParameters, String channel){
         this.channel = channel.replaceAll(File.separator, ",");
 
         formatFilePath(server, driverParameters);

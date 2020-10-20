@@ -1,5 +1,10 @@
 package InnaIrcBot;
 
+import InnaIrcBot.logging.LogDriver;
+
+import java.util.ArrayList;
+import java.util.List;
+
 public class GlobalData {
     private static final String version = "InnaIrcBot v0.8 \"Коммунарка\"";
     public static synchronized String getAppVersion(){

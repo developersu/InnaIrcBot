@@ -1,4 +1,4 @@
-package InnaIrcBot.LogDriver;
+package InnaIrcBot.logging;
 
 public interface Worker {
     boolean consistent = false;

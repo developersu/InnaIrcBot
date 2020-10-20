@@ -1,4 +1,4 @@
-package InnaIrcBot.LogDriver;
+package InnaIrcBot.logging;
 
 import org.sqlite.SQLiteConfig;
 import org.sqlite.SQLiteOpenMode;
@@ -6,7 +6,7 @@ import org.sqlite.SQLiteOpenMode;
 import java.io.File;
 import java.sql.*;
 
-public class BotSQLiteWorker implements Worker {
+public class WorkerSQLite implements Worker {
 
     private Connection connection;
     private boolean consistent = false;
@@ -16,7 +16,7 @@ public class BotSQLiteWorker implements Worker {
 /**
  * Don't even think of changing this balalaika.
  * */
-    public BotSQLiteWorker(String server, String[] driverParameters,  String channel){        // TODO: threads on SQLite level // remember: One file one DB
+    public WorkerSQLite(String server, String[] driverParameters, String channel){        // TODO: threads on SQLite level // remember: One file one DB
         this.ircServer = server;
         driverParameters[0] = driverParameters[0].trim();
         File dir = new File(driverParameters[0]);

@@ -1,6 +1,6 @@
-package InnaIrcBot.LogDriver;
+package InnaIrcBot.logging;
 
-public class BotZeroWorker implements Worker{
+public class WorkerZero implements Worker{
     @Override
     public boolean isConsistent() {return true;}
 

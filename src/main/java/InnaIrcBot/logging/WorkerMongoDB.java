@@ -1,4 +1,4 @@
-package InnaIrcBot.LogDriver;
+package InnaIrcBot.logging;
 
 import com.mongodb.*;
 import com.mongodb.client.MongoClient;
@@ -8,6 +8,7 @@ import com.mongodb.client.MongoDatabase;
 import com.mongodb.event.*;
 import org.bson.Document;
 
+import java.io.Closeable;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -17,13 +18,13 @@ import java.util.concurrent.TimeUnit;
  * For each channel we store collection that have name of the ircServer + chanelName.
  * If user decides to use one MongoDB for various servers, he may use even one DB (declared in configuration file) and store collections in there.
  * **/
-public class BotMongoWorker implements Worker {               //TODO consider skipping checks if server already added.
+public class WorkerMongoDB implements Worker {               //TODO consider skipping checks if server already added.
     private final static Map<String, MongoClient> serversMap = Collections.synchronizedMap(new HashMap<>());
     private final String server;
     private MongoCollection<Document> collection;
     private boolean consistent;
 
-    public BotMongoWorker(String server, String[] driverParameters, String channel){
+    public WorkerMongoDB(String server, String[] driverParameters, String channel){
         this.server = server;
 
         if (driverParameters.length < 2)
@@ -129,17 +130,20 @@ public class BotMongoWorker implements Worker {               //TODO consider sk
             // no need to close() obviously
         }
 
-        if (consistent){
-            ThingToCloseOnDie thing = () -> {
-                if (serversMap.containsKey(server)) {
-                    serversMap.get(server).close();
-                    serversMap.remove(server);
-                }
-            };
+        setClosable();
+    }
+    private void setClosable(){
+        if (! consistent)
+            return;
 
-            BotDriver.getSystemWorker(server).registerInSystemWorker(thing);
-        }
+        Closeable thing = () -> {
+            if (serversMap.containsKey(server)) {
+                serversMap.get(server).close();
+                serversMap.remove(server);
+            }
+        };
 
+        LogDriver.getSystemWorker(server).registerInSystemWorker(thing);
     }
 
     @Override
