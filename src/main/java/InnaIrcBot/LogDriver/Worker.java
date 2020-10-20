@@ -6,8 +6,8 @@ public interface Worker {
     boolean isConsistent();
 
     boolean logAdd(String event,
-                String initiatorArg,
-                String messageArg);
+                String initiator,
+                String message);
 
     void close();
 }

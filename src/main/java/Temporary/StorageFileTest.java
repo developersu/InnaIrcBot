@@ -1,10 +1,10 @@
 package Temporary;
 
-import InnaIrcBot.Config.StorageFile;
+import InnaIrcBot.config.ConfigurationFile;
 
 public class StorageFileTest {
     static public void main(String[] args){
-        StorageFile config = new StorageFile(
+        ConfigurationFile config = new ConfigurationFile(
                 "",
                 0,
                 "",

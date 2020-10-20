@@ -2,12 +2,22 @@
 
 Another one IRC bot in deep-deep beta.
 
+## License
+Source code spreads under the GNU General Public License v3 or higher. Please see LICENSE file.
+
+####Used libraries:
+* Apache commons CLI: https://commons.apache.org/proper/commons-cli/
+* GSON: https://github.com/google/gson
+* sqliteJDBC: https://bitbucket.org/xerial/sqlite-jdbc
+* mongodb-driver-sync: https://mongodb.github.io/mongo-java-driver/3.9/
+* JUnit 5: https://junit.org/junit5/
+
 ## Usage
-`  	-c, --configuration <name.config> [<name1.config> ...]	Read Config`
-
-` 	-g, --generate	[name.config]		Generate Config`
-
-` 	-v, --version						Get application version`
+``` 
+ 	-c, --configuration <name.config> [<name1.config> ...]	Read Config
+ 	-g, --generate	[name.config]		Generate Config
+ 	-v, --version						Get application version
+```
 #### Configuration settings
 "userNickAuthStyle": "rusnet" or "freenode"
 * rusnet - send '/nickserv IDENTIFY mySecretPass'
@@ -18,16 +28,7 @@ Another one IRC bot in deep-deep beta.
 * SQLite - use /yourPathSet/server.db (or /yourPathSet/yourFileName.db) sqlite file.
 * MongoDB - write files to MongoDB. See ConfigurationExamples folder.
 
-## License
-Source code spreads under the GNU General Public License v3 or higher. Please see LICENSE file.
-
-Used libraries:
-* GSON: https://github.com/google/gson
-* sqliteJDBC: https://bitbucket.org/xerial/sqlite-jdbc
-* mongodb-driver-sync: https://mongodb.github.io/mongo-java-driver/3.9/
-
-
-## TODO:
+### TODO:
 - [ ] Documentation
 - [ ] Code refactoring
 - [ ] QA: good regression testing

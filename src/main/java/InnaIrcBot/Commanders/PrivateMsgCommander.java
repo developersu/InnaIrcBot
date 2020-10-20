@@ -6,13 +6,13 @@ import InnaIrcBot.ReconnectControl;
 
 import java.util.ArrayList;
 
-public class PrivateMsgCommander {                                          // TODO: add black list: add users after failed login queries ; temporary ban
-    private String serverName;
-    private ArrayList<String> administrators;
-    private String password;
+public class PrivateMsgCommander {       // TODO: add black list: add users after failed login queries ; temporary ban
+    private final String server;
+    private final String password;
+    private final ArrayList<String> administrators;
 
     public PrivateMsgCommander(String server, String adminPassword){
-        this.serverName = server;
+        this.server = server;
         this.administrators = new ArrayList<>();
         this.password = adminPassword.trim();
     }
@@ -155,7 +155,7 @@ public class PrivateMsgCommander {                                          // T
                     case "unvoice":
                         if ((cmd.length == 2) && (cmd[1].split("(\\s)|(\t)+?",2).length == 2)) {
                             String[] voiceArgs = cmd[1].split("(\\s)|(\t)+?", 2);
-                            unvoice(voiceArgs[0], voiceArgs[1]);
+                            devoice(voiceArgs[0], voiceArgs[1]);
                         }
                         else
                             tell(simplifyNick(sender), "Pattern: [-v|unvoice] <channel> <user>");
@@ -173,7 +173,7 @@ public class PrivateMsgCommander {                                          // T
                     case "unhop":
                         if ((cmd.length == 2) && (cmd[1].split("(\\s)|(\t)+?",2).length == 2)) {
                             String[] hopArgs = cmd[1].split("(\\s)|(\t)+?", 2);
-                            unhop(hopArgs[0], hopArgs[1]);
+                            dehop(hopArgs[0], hopArgs[1]);
                         }
                         else
                             tell(simplifyNick(sender), "Pattern: [-h|unhop] <channel> <user>");
@@ -191,7 +191,7 @@ public class PrivateMsgCommander {                                          // T
                     case "unop":
                         if ((cmd.length == 2) && (cmd[1].split("(\\s)|(\t)+?",2).length == 2)) {
                             String[] args = cmd[1].split("(\\s)|(\t)+?", 2);
-                            unop(args[0], args[1]);
+                            deop(args[0], args[1]);
                         }
                         else
                             tell(simplifyNick(sender), "Pattern: [-o|unoperator] <channel> <user>");
@@ -238,7 +238,7 @@ public class PrivateMsgCommander {                                          // T
         }
         else
             raw("QUIT :"+message);
-        ReconnectControl.update(serverName, false);
+        ReconnectControl.update(server, false);
         //ReconnectControl.update(serverName, true);
         //System.exit(0);                                                             // TODO: change to normal exit
     }
@@ -268,7 +268,7 @@ public class PrivateMsgCommander {                                          // T
             raw("MODE "+object+" "+mode+" "+user);
     }
     private void raw(String rawText){
-        StreamProvider.writeToStream(serverName, rawText);
+        StreamProvider.writeToStream(server, rawText);
     }
     private void kick(String chanel, String user, String reason){
         if (reason == null)
@@ -295,19 +295,19 @@ public class PrivateMsgCommander {                                          // T
     private void voice(String chanel, String user){
         cmode(chanel, "+v", user);            
     }
-    private void unvoice(String chanel, String user){
+    private void devoice(String chanel, String user){
         cmode(chanel, "-v", user);            
     }
     private void hop(String chanel, String user){
         cmode(chanel, "+h", user);
     }
-    private void unhop(String chanel, String user){
+    private void dehop(String chanel, String user){
         cmode(chanel, "-h", user);
     }
     private void op(String chanel, String user){
         cmode(chanel, "+o", user);
     }
-    private void unop(String chanel, String user){
+    private void deop(String chanel, String user){
         cmode(chanel, "-o", user);
     }
     private void topic(String channel, String topic){ raw("TOPIC "+channel+" :"+topic); }

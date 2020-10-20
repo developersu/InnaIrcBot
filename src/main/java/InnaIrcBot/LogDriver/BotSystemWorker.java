@@ -9,48 +9,43 @@ import java.time.format.DateTimeFormatter;
 public class BotSystemWorker implements SystemWorker{
 
     private FileWriter fileWriter;
-    private DateTimeFormatter dateFormat;
+    private final DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("HH:mm:ss");
     private ThingToCloseOnDie thingToCloseOnDie;     // call .die() method of this classes when this (system log class) dies.
 
-    String ircServer;
+    private final String server;
 
     private boolean consistent = false;
 
-    public BotSystemWorker(String ircServer, String appLogDir){
-        this.ircServer = ircServer;
-        this.dateFormat = DateTimeFormatter.ofPattern("HH:mm:ss");
-
+    public BotSystemWorker(String server, String appLogDir){
+        this.server = server;
 
         if (appLogDir.isEmpty()) {
-            if (System.getProperty("os.name").toLowerCase().startsWith("win")) {
-                appLogDir = System.getProperty("user.home")+ File.separator
-                        +"AppData"+File.separator
-                        +"Local"+File.separator
-                        +"InnaIrcBot"+File.separator;
-            } else {
-                appLogDir = "/var/log/innaircbot/";
-            }
+            appLogDir = System.getProperty("java.io.tmpdir")+File.separator+"innaircbot"+File.separator;
         }
-        if (!appLogDir.endsWith(File.separator))
-            appLogDir = appLogDir+File.separator;
+        else if (! appLogDir.endsWith(File.separator)) {
+            appLogDir += File.separator;
+        }
 
-        appLogDir = appLogDir+ircServer;
+        appLogDir += server;
+
         File logFile = new File(appLogDir);
+
         try {
-            logFile.getParentFile().mkdirs();
-        } catch (SecurityException e){
-            System.out.println("BotSystemWorker (@"+ircServer+")->constructor() failed. Unable to create sub-directory(-ies) to store logs file ("+appLogDir+"):\n\t"+e);
-            return;                     // Consistent = false
-        }
-        if (!logFile.getParentFile().exists()) {
-            System.out.println("BotSystemWorker (@"+ircServer+")->constructor() failed:\n\tUnable to create sub-directory(-ies) to store log file: " + appLogDir);
-            return;
-        }
-        try {
-            this.fileWriter = new FileWriter(logFile, true);
+            if (! logFile.getParentFile().exists()) {
+                if (! logFile.getParentFile().mkdirs()){
+                    System.out.println("BotSystemWorker (@"+server+")->constructor() failed:\n" +
+                            "\tUnable to create sub-directory(-ies) to store log file: " + appLogDir);
+                    return;
+                }
+            }
+            fileWriter = new FileWriter(logFile, true);
             consistent = true;
+        } catch (SecurityException e){
+            System.out.println("BotSystemWorker (@"+server+")->constructor() failed.\n" +
+                    "\tUnable to create sub-directory(-ies) to store logs file ("+appLogDir+"):\n\t"+e.getMessage());
         } catch (IOException oie){
-            System.out.println("BotSystemWorker (@"+ircServer+")->constructor() failed:\n\tUnable to open file to store logs: " + appLogDir);
+            System.out.println("BotSystemWorker (@"+server+")->constructor() failed:\n" +
+                    "\tUnable to open file to store logs: " + appLogDir + " "+ oie.getMessage());
         }
     }
 
@@ -64,22 +59,14 @@ public class BotSystemWorker implements SystemWorker{
             try {
                 fileWriter.write(genDate() + event + " " + initiatorArg + " " + messageArg + "\n");
                 fileWriter.flush();
-            } catch (IOException e) {
-                System.out.println("BotSystemWorker (@" + ircServer + ")->logAdd() failed\n\tUnable to write logs of because of internal failure in LocalTime representation.");
-                //this.close();
-                consistent = false;
-            } catch (NullPointerException npe) {
-                System.out.println("BotSystemWorker (@" + ircServer + ")->logAdd() failed\n\tUnable to write logs of because file descriptor already closed/was not opened.");
-                consistent = false;
-            } catch (Exception unknowne) {     // ??? No ideas. Just in case. Consider removing.
-                System.out.println("BotSystemWorker (@" + ircServer + ")->logAdd() failed\n\tUnable to write logs of because of exception:\n\t" + unknowne);
+            } catch (Exception e) {     // ??? No ideas. Just in case. Consider removing.
+                System.out.println("BotSystemWorker (@" + server + ")->logAdd() failed\n\tUnable to write logs of because of exception:\n\t" + e.getMessage());
                 //this.close();
                 consistent = false;
             }
+            return;
         }
-        else {
-            System.out.println(genDate() + event + " " + initiatorArg + " " + messageArg + "\n");
-        }
+        System.out.println(genDate() + event + " " + initiatorArg + " " + messageArg + "\n");
     }
 
     @Override
@@ -93,14 +80,11 @@ public class BotSystemWorker implements SystemWorker{
     public void close() {
         if (thingToCloseOnDie != null)
             thingToCloseOnDie.die();
-        if (fileWriter != null) {
-            try {
-                fileWriter.close();
-            }
-            catch (java.io.IOException e){
-                System.out.println("BotSystemWorker (@"+ircServer+")->close() failed\n\tUnable to properly close logs file."); // Live with it.
-            }
+
+        try {
+            fileWriter.close();
         }
+        catch (IOException | NullPointerException ignore){}
         consistent = false;
     }
 }

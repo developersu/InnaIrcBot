@@ -1,8 +1,5 @@
 package Temporary;
 
-import InnaIrcBot.Config.StorageFile;
-import InnaIrcBot.Config.StorageReader;
-
 public class StorageReaderTest {
     public static void main(String[] args){
     //    StorageReader.readConfig("/home/loper/bot.config");

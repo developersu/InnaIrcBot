@@ -155,37 +155,37 @@ public class BotSQLiteWorker implements Worker {
     public boolean isConsistent() {return consistent; }
 
     @Override
-    public boolean logAdd(String event, String initiatorArg, String messageArg) {
+    public boolean logAdd(String event, String initiator, String message) {
         try {
             preparedStatement.setLong(1, getDate());
             preparedStatement.setString(2, event);
-            preparedStatement.setString(3, initiatorArg);
+            preparedStatement.setString(3, initiator);
             switch (event) {
                 case "NICK":
                 case "JOIN":
-                    preparedStatement.setString(4, messageArg);
+                    preparedStatement.setString(4, message);
                     preparedStatement.setString(5, null);
                     break;
                 case "PART":
                 case "QUIT":
                 case "TOPIC":
-                    preparedStatement.setString(4, messageArg.replaceAll("^.+?:", ""));
+                    preparedStatement.setString(4, message.replaceAll("^.+?:", ""));
                     preparedStatement.setString(5, null);
                     break;
                 case "MODE":
-                    preparedStatement.setString(4, messageArg.replaceAll("(^(.+?\\s){1})|(\\s.+$)",""));
-                    preparedStatement.setString(5, messageArg.replaceAll("^(.+?\\s){2}", ""));
+                    preparedStatement.setString(4, message.replaceAll("(^(.+?\\s){1})|(\\s.+$)",""));
+                    preparedStatement.setString(5, message.replaceAll("^(.+?\\s){2}", ""));
                     break;
                 case "KICK":
-                    preparedStatement.setString(4, messageArg.replaceAll("^.+?:", ""));
-                    preparedStatement.setString(5, messageArg.replaceAll("(^.+?\\s)|(\\s.+$)", ""));
+                    preparedStatement.setString(4, message.replaceAll("^.+?:", ""));
+                    preparedStatement.setString(5, message.replaceAll("(^.+?\\s)|(\\s.+$)", ""));
                     break;
                 case "PRIVMSG":
-                    preparedStatement.setString(4, messageArg.replaceAll("^:", ""));
+                    preparedStatement.setString(4, message.replaceAll("^:", ""));
                     preparedStatement.setString(5,null);
                     break;
                 default:
-                    preparedStatement.setString(4, messageArg);
+                    preparedStatement.setString(4, message);
                     preparedStatement.setString(5,null);
                     break;
             }

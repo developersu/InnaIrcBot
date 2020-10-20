@@ -8,17 +8,18 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.concurrent.BlockingQueue;
 import java.util.regex.Pattern;
                                                             //TODO: FLOOD, JOIN FLOOD
                                                             // TODO: @ configuration level: if in result we have empty string, no need to pass it to server
 public class ChanelCommander implements Runnable {
-    private BufferedReader reader;
-    private String server;
-    private String chanel;
+    private final BlockingQueue<String> streamQueue;
+    private final String server;
+    private final String channel;
                                                             //TODO: add timers
-    private HashMap<String, String[]> joinMap;               // Mask(Pattern) ->, Action | Where Action[0] could be: raw
-    private HashMap<String, String[]> msgMap;               // Mask(Pattern) ->, Action | Where Action[0] could be: raw
-    private HashMap<String, String[]> nickMap;               // Mask(Pattern) ->, Action | Where Action[0] could be: raw
+    private final HashMap<String, String[]> joinMap;               // Mask(Pattern) ->, Action | Where Action[0] could be: raw
+    private final HashMap<String, String[]> msgMap;               // Mask(Pattern) ->, Action | Where Action[0] could be: raw
+    private final HashMap<String, String[]> nickMap;               // Mask(Pattern) ->, Action | Where Action[0] could be: raw
 
     private boolean joinFloodTrackNeed  = false;
     private JoinFloodHandler jfh;
@@ -26,10 +27,10 @@ public class ChanelCommander implements Runnable {
     private boolean joinCloneTrackNeed  = false;         // todo:fix
     private JoinCloneHandler jch;
 
-    public ChanelCommander(BufferedReader streamReader, String serverName, String chan, String configFilePath){
-        this.reader = streamReader;
+    public ChanelCommander(BlockingQueue<String> stream, String serverName, String channel, String configFilePath){
+        this.streamQueue = stream;
         this.server = serverName;
-        this.chanel = chan;
+        this.channel = channel;
 
         this.joinMap = new HashMap<>();
         this.msgMap = new HashMap<>();
@@ -39,13 +40,13 @@ public class ChanelCommander implements Runnable {
 
     @Override
     public void run() {
-        System.out.println("Thread for ChanelCommander started");                                                   // TODO:REMOVE DEBUG
-        String data;
-        String[] dataStrings;
+        System.out.println("["+LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))+"] ChanelCommander thread "
+                +server+":"+this.channel +" started");// TODO:REMOVE DEBUG
         try {
-            while ((data = reader.readLine()) != null) {
-                dataStrings = data.split(" ",3);
-                //event initiatorArg messageArg
+            while (true) {
+                String data = streamQueue.take();
+                String[] dataStrings = data.split(" ",3);
+
                 switch (dataStrings[0]) {
                     case "NICK":
                         nickCame(dataStrings[2]+dataStrings[1].replaceAll("^.+?!","!"));
@@ -75,8 +76,9 @@ public class ChanelCommander implements Runnable {
                         break;
                 }
             }
-        } catch (java.io.IOException e){
-            System.out.println("Internal issue: thread ChanelCommander->run() caused I/O exception:\n\t"+e);           // TODO: reconnect
+        }
+        catch (InterruptedException ie){
+            System.out.println("Internal issue: thread ChanelCommander->run() interrupted.\n\t");           // TODO: reconnect
         }
         System.out.println("Thread for ChanelCommander ended");                                                   // TODO:REMOVE DEBUG
     }
@@ -175,7 +177,7 @@ public class ChanelCommander implements Runnable {
                                 String objectToCtcp = arg1.trim().replaceAll(objectRegexp, "");     // note: trim() ?
                                 if (!objectToCtcp.isEmpty()){
                                     if (CTCPType.startsWith("\\c"))
-                                        CTCPHelper.getInstance().registerRequest(server, chanel, CTCPType.substring(2).toUpperCase(), objectToCtcp, whatToSendStringBuilder.toString());
+                                        CTCPHelper.getInstance().registerRequest(server, channel, CTCPType.substring(2).toUpperCase(), objectToCtcp, whatToSendStringBuilder.toString());
                                     else
                                         CTCPHelper.getInstance().registerRequest(server, simplifyNick(arg2), CTCPType.substring(2).toUpperCase(), objectToCtcp, whatToSendStringBuilder.toString());
                                 }
@@ -201,40 +203,40 @@ public class ChanelCommander implements Runnable {
             executiveStr.append(" :");
         }
         else {
-            executiveStr.append(chanel);
+            executiveStr.append(channel);
             executiveStr.append(" :");
             executiveStr.append(simplifyNick(who));
             executiveStr.append(": ");
         }
 
-        for (int i = 0; i < messages.length; i++){
-            if ( ! messages[i].startsWith("\\"))
-                executiveStr.append(messages[i]);
-            else if (messages[i].equals("\\time"))                                    // TODO: remove this shit
+        for (String message : messages) {
+            if (!message.startsWith("\\"))
+                executiveStr.append(message);
+            else if (message.equals("\\time"))                                    // TODO: remove this shit
                 executiveStr.append(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
         }
         //System.out.println(executiveStr.toString());                               //TODO: debug
         StreamProvider.writeToStream(server, executiveStr.toString());
     }
     private void banAction(String whom){
-        StreamProvider.writeToStream(server, "MODE "+chanel+" +b "+simplifyNick(whom)+"*!*@*");
-        StreamProvider.writeToStream(server, "MODE "+chanel+" +b "+"*!*@"+whom.replaceAll("^.+@",""));
+        StreamProvider.writeToStream(server, "MODE "+ channel +" +b "+simplifyNick(whom)+"*!*@*");
+        StreamProvider.writeToStream(server, "MODE "+ channel +" +b "+"*!*@"+whom.replaceAll("^.+@",""));
     }
     private void voiceAction(String whom){
-        StreamProvider.writeToStream(server, "MODE "+chanel+" +v "+simplifyNick(whom));
+        StreamProvider.writeToStream(server, "MODE "+ channel +" +v "+simplifyNick(whom));
     }
     private void kickAction(String[] messages, String whom){
         StringBuilder executiveStr = new StringBuilder();
         executiveStr.append("KICK ");
-        executiveStr.append(chanel);
+        executiveStr.append(channel);
         executiveStr.append(" ");
         executiveStr.append(simplifyNick(whom));
         executiveStr.append(" :");
 
-        for (int i = 0; i < messages.length; i++){
-            if ( ! messages[i].startsWith("\\"))
-                executiveStr.append(messages[i]);
-            else if (messages[i].equals("\\time"))
+        for (String message : messages) {
+            if (!message.startsWith("\\"))
+                executiveStr.append(message);
+            else if (message.equals("\\time"))
                 executiveStr.append(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
         }
         StreamProvider.writeToStream(server, executiveStr.toString());
@@ -256,12 +258,13 @@ public class ChanelCommander implements Runnable {
                     break;
                 case "joinfloodcontrol":
                     if (!directive[1].isEmpty() && !directive[2].isEmpty() && Pattern.matches("^[0-9]+?$", directive[1].trim()) && Pattern.matches("^[0-9]+?$", directive[2].trim())) {
-                        int events = Integer.valueOf(directive[1].trim());
-                        int timeFrame = Integer.valueOf(directive[2].trim());
+                        int events = Integer.parseInt(directive[1].trim());
+                        int timeFrame = Integer.parseInt(directive[2].trim());
                         if (events > 0 && timeFrame > 0) {
-                            jfh = new JoinFloodHandler(events, timeFrame, server, chanel);
+                            jfh = new JoinFloodHandler(events, timeFrame, server, channel);
                             joinFloodTrackNeed = true;
-                        } else {
+                        }
+                        else {
                             System.out.println("Internal issue: thread ChanelCommander->parse(): 'Number of events' and/or 'Time Frame in seconds' should be greater than 0");
                         }
                     }
@@ -270,9 +273,9 @@ public class ChanelCommander implements Runnable {
                     break;
                 case "joinclonecontrol":
                     if (!directive[1].isEmpty() && !directive[2].isEmpty() && Pattern.matches("^[0-9]+?$", directive[1].trim())) {
-                        int events = Integer.valueOf(directive[1].trim());
+                        int events = Integer.parseInt(directive[1].trim());
                         if (events > 0){
-                            jch = new JoinCloneHandler(directive[2], events, server, chanel);       // TODO: REMOVE
+                            jch = new JoinCloneHandler(directive[2], events, server, channel);       // TODO: REMOVE
                             joinCloneTrackNeed = true;
                         }
                         else {
@@ -289,7 +292,9 @@ public class ChanelCommander implements Runnable {
     private void readConfing(String confFilesPath){
         if (!confFilesPath.endsWith(File.separator))
             confFilesPath += File.separator;
-        File file = new File(confFilesPath+server+chanel+".csv");  // TODO: add/search for filename
+
+        File file = new File(confFilesPath+server+ channel +".csv");  // TODO: add/search for filename
+
         if (!file.exists())
             return;
         try {
@@ -298,10 +303,9 @@ public class ChanelCommander implements Runnable {
             while ((line = br.readLine()) != null) {
                 parse(line.split("\t"));
             }
-        } catch (FileNotFoundException e) {
-            System.out.println("Internal issue: thread ChanelCommander->readConfig() can't find file:\t\n"+e);
-        }  catch (IOException e){
-            System.out.println("Internal issue: thread ChanelCommander->readConfig() I/O exception:\t\n"+e);
+        }
+        catch (Exception e) {
+            System.out.println("Internal issue: thread ChanelCommander->readConfig():\t\n"+e.getMessage());
         }
     }
 }

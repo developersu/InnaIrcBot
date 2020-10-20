@@ -1,38 +1,97 @@
-/**
- * InnaIrcBot
- * @author Dmitry Isaenko
- * Russia, 2018-2019.
- * */
 package InnaIrcBot;
 
-import InnaIrcBot.Config.StorageReader;
+import InnaIrcBot.config.ConfigurationFileGenerator;
+import org.apache.commons.cli.*;
 
 public class BotStart {
-//TODO: flood control
-//TODO: setDaemon(true)
-//TODO: multiple connections to one server not allowed
+    public BotStart(String[] args){
 
-    public static void main(String[] args){
-        if (args.length != 0) {
-            if (args.length >= 2) {
-                if (args[0].equals("--configuration") || args[0].equals("-c")) {
-                    new Connections(args);
-                } else if (args[0].equals("--generate") || args[0].equals("-g")) {
-                    StorageReader.generateDefaultConfig(args[1]);
-                }
+        final Options cliOptions = createCliOptions();
+        CommandLineParser cliParser = new DefaultParser();
+
+        try{
+            CommandLine cli = cliParser.parse(cliOptions, args);
+            if (cli.hasOption('v') || cli.hasOption("version")){
+                handleVersion();
+                return;
             }
-            else if (args[0].equals("--generate") || args[0].equals("-g")){
-                StorageReader.generateDefaultConfig(null);
+            if (cli.hasOption("c") || cli.hasOption("configuration")){
+                final String[] arguments = cli.getOptionValues("configuration");
+                for (String a: arguments)
+                ConnectionsBuilder.buildConnections(arguments);
+                return;
             }
-            else if (args[0].equals("--version") || args[0].equals("-v")) {
-                System.out.println(GlobalData.getAppVersion());
+            if (cli.hasOption("g") || cli.hasOption("generate")){
+                final String[] arguments = cli.getOptionValues("generate");
+                handleGenerate(arguments);
+                return;
             }
+
+            handleHelp(cliOptions);
         }
-        else {
-            System.out.println("Usage:\n"
-                    +" \t-c, --configuration <name.config> [<name1.config> ...]\tRead Config\n"
-                    +"\t-g, --generate\t[name.config]\t\t\t\tGenerate Config\n"
-                    +"\t-v, --version\t\t\t\t\t\tGet application version");
+        catch (ParseException pe){
+            handleHelp(cliOptions);
         }
+        catch (Exception e){
+            System.out.println("Error: ");
+            e.printStackTrace();
+        }
+    }
+    private Options createCliOptions(){
+        final Options options = new Options();
+
+        final Option helpOption = Option.builder("h")
+                .longOpt("help")
+                .desc("Show this help")
+                .hasArg(false)
+                .build();
+
+        final Option versionOption = Option.builder("v")
+                .longOpt("version")
+                .desc("Show application version")
+                .hasArg(false)
+                .build();
+
+        final Option configurationOption = Option.builder("c")
+                .longOpt("configuration")
+                .desc("Start with configuration")
+                .hasArg(true)
+                .build();
+
+        final Option generateOption = Option.builder("g")
+                .longOpt("generate")
+                .desc("Create configuration template")
+                .hasArg(true)
+                .numberOfArgs(1)
+                .build();
+
+        final OptionGroup group = new OptionGroup();
+        group.addOption(helpOption);
+        group.addOption(versionOption);
+        group.addOption(configurationOption);
+        group.addOption(generateOption);
+
+        options.addOptionGroup(group);
+
+        return options;
+    }
+
+    private void handleVersion(){
+        System.out.println(GlobalData.getAppVersion());
+    }
+
+    private void handleHelp(Options cliOptions){
+        new HelpFormatter().printHelp(
+                120,
+                "InnaIrcBot.jar [OPTION]... [FILE]...",
+                "options:",
+                cliOptions,
+                "\n");
+    }
+    private void handleGenerate(String[] arguments){
+        if (arguments.length > 0)
+            ConfigurationFileGenerator.generate(arguments[0]);
+        else
+            ConfigurationFileGenerator.generate(null);
     }
 }
