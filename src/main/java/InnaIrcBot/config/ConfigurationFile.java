@@ -1,10 +1,19 @@
 package InnaIrcBot.config;
 
+import org.ini4j.Config;
+import org.ini4j.Ini;
+import org.ini4j.Wini;
+
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
 public class ConfigurationFile {
     private String serverName;
     private int serverPort;
     private String serverPass;
-    private String[] channels;
     private String userNick;
     private String userIdent;
     private String userRealName;
@@ -12,73 +21,143 @@ public class ConfigurationFile {
     private String userNickAuthStyle;
     private String userMode;
     private boolean rejoinOnKick;
-    private String logDriver;
-    private String[] logDriverParameters;
     private String botAdministratorPassword;
-    private String chanelConfigurationsPath;
     private String applicationLogDir;
-
     private LogDriverConfiguration logDriverConfiguration;
+    private List<String> channels;
+    private HashMap<String, ConfigurationChannel> channelConfigs;
 
-    public ConfigurationFile(String serverName,
-                             int serverPort,
-                             String serverPass,
-                             String[] channels,
-                             String userNick,
-                             String userIdent,
-                             String userRealName,
-                             String userNickPass,
-                             String userNickAuthStyle,
-                             String userMode,
-                             boolean rejoinOnKick,
-                             String logDriver,
-                             String[] logDriverParameters,
-                             String botAdministratorPassword,
-                             String chanelConfigurationsPath,
-                             String applicationLogDir){
-        this.serverName = serverName;
-        this.serverPort = serverPort;
-        this.serverPass = serverPass;
-        this.channels = channels;
-        this.userIdent = userIdent;
-        this.userNick = userNick;
-        this.userRealName = userRealName;
-        this.userNickPass = userNickPass;
-        this.userNickAuthStyle = userNickAuthStyle;
-        this.userMode = userMode;
-        this.rejoinOnKick = rejoinOnKick;
-        this.logDriver = logDriver;
-        this.logDriverParameters = logDriverParameters;
-        this.botAdministratorPassword = botAdministratorPassword;
-        this.chanelConfigurationsPath = chanelConfigurationsPath;
-        this.applicationLogDir = applicationLogDir;
-    }
-
-    public String getServerName() { return nonNullString(serverName); }
+    public String getServerName() { return serverName; }
     public int getServerPort() { return serverPort; }
-    public String getServerPass() { return nonNullString(serverPass); }
-    public String[] getChannels() { return channels; }
-    public String getUserNick() { return nonNullString(userNick); }
-    public String getUserIdent() { return nonNullString(userIdent); }
-    public String getUserRealName() { return nonNullString(userRealName); }
-    public String getUserNickPass() { return nonNullString(userNickPass); }
-    public String getUserNickAuthStyle() { return nonNullString(userNickAuthStyle); }
-    public String getUserMode() { return nonNullString(userMode); }
+    public String getServerPass() { return serverPass; }
+    public String getUserNick() { return userNick; }
+    public String getUserIdent() { return userIdent; }
+    public String getUserRealName() { return userRealName; }
+    public String getUserNickPass() { return userNickPass; }
+    public String getUserNickAuthStyle() { return userNickAuthStyle; }
+    public String getUserMode() { return userMode; }
     public boolean getRejoinOnKick() { return rejoinOnKick; }
+    public String getBotAdministratorPassword() { return botAdministratorPassword; }
+    public String getApplicationLogDir() { return applicationLogDir; }
+    public LogDriverConfiguration getLogDriverConfiguration(){ return logDriverConfiguration; }
+    public List<String> getChannels() { return channels; }
+    public ConfigurationChannel getChannelConfig(String channel) { return channelConfigs.get(channel); }
 
-    public LogDriverConfiguration getLogDriverConfiguration(){
-        return new LogDriverConfiguration(nonNullString(logDriver).toLowerCase(), logDriverParameters);
+    public ConfigurationFile(String pathToConfigurationFile) throws Exception{
+        Wini ini = new Wini();
+        ini.setConfig(getConfig());
+        ini.load(new File(pathToConfigurationFile));
+        parseMain(ini);
+        parseLogging(ini);
+        parseChannels(ini);
+        validate();
     }
 
-    public String getBotAdministratorPassword() { return nonNullString(botAdministratorPassword); }
-    public String getChanelConfigurationsPath() { return nonNullString(chanelConfigurationsPath); }
-    public String getApplicationLogDir() { return nonNullString(applicationLogDir); }
-
-    public void setUserNickAuthStyle(String userNickAuthStyle) {
-        this.userNickAuthStyle = userNickAuthStyle;
+    private Config getConfig(){
+        Config config = new Config();
+        config.setFileEncoding(StandardCharsets.UTF_8);
+        config.setMultiOption(true);
+        config.setEscape(true);
+        return config;
     }
 
-    private String nonNullString(String value){
-        return value == null ? "" : value;
+    private void parseMain(Wini ini){
+        Ini.Section mainSection = ini.get("main");
+
+        this.serverName = mainSection.getOrDefault("server name", "");
+        this.serverPort = mainSection.get("server port", int.class);
+        this.serverPass = mainSection.getOrDefault("server password", "");
+        this.userNick = mainSection.getOrDefault("nickname", "");
+        this.userIdent = mainSection.getOrDefault("ident", "");
+        this.userRealName = mainSection.getOrDefault("real name", "");
+        this.userNickPass = mainSection.getOrDefault("nickname password", "");
+        this.userNickAuthStyle = mainSection.getOrDefault("nickserv auth method", "").toLowerCase();
+        this.userMode = mainSection.getOrDefault("user modes", "");
+        this.rejoinOnKick = mainSection.get("auto rejoin", boolean.class);
+        this.botAdministratorPassword = mainSection.getOrDefault("bot administrator password", "");
+        this.applicationLogDir = mainSection.getOrDefault("application logs", "");
+    }
+
+    private void parseChannels(Wini ini){
+        Ini.Section channelsSection = ini.get("channels");
+        this.channels = channelsSection.getAll("channel");
+        this.channelConfigs = new HashMap<>();
+        for (String channel: channels){
+            addNewChannelConfiguration(ini, channel);
+        }
+    }
+    private void addNewChannelConfiguration(Wini ini, String channelName){
+        Ini.Section channelSection = ini.get(channelName);
+
+        if (channelSection == null)
+            return;
+
+        Ini.Section rulesChannelSection = channelSection.getChild("rules");
+
+        List<String> channelRules = rulesChannelSection.getAll("rule"); //TODO: check not-null
+
+        if (channelRules == null)
+            channelRules = new ArrayList<>();
+
+        Ini.Section joinFloodControlSection = channelSection.getChild("rules");
+
+        boolean joinFloodControl = joinFloodControlSection.get("enable", boolean.class);
+        int joinFloodControlEventsNumber = -1;
+        int joinFloodControlTimeFrame = -1;
+        if (joinFloodControl){
+            joinFloodControlEventsNumber = joinFloodControlSection.get("join number", int.class);
+            joinFloodControlTimeFrame = joinFloodControlSection.get("time frame", int.class);
+        }
+
+        Ini.Section joinCloneControlSection = channelSection.getChild("rules");
+
+        boolean joinCloneControl = joinCloneControlSection.get("enable", boolean.class);;
+        int joinCloneControlTimeFrame = -1;
+        String joinCloneControlPattern = "";
+        if (joinCloneControl){
+            joinCloneControlTimeFrame = joinCloneControlSection.get("time frame", int.class);
+            joinCloneControlPattern = joinCloneControlSection.getOrDefault("pattern", "");
+        }
+
+        channelConfigs.put(channelName, new ConfigurationChannel(
+                joinFloodControl,
+                joinFloodControlEventsNumber,
+                joinFloodControlTimeFrame,
+                joinCloneControl,
+                joinCloneControlTimeFrame,
+                joinCloneControlPattern,
+                channelRules));
+    }
+
+    private void parseLogging(Wini ini){
+        Ini.Section channelsSection = ini.get("logging");
+
+        this.logDriverConfiguration = new LogDriverConfiguration(
+                channelsSection.getOrDefault("driver", ""),
+                channelsSection.getOrDefault("file(s) location", ""),
+                channelsSection.getOrDefault("MongoDB host:port", ""),
+                channelsSection.getOrDefault("MongoDB DB table", ""),
+                channelsSection.getOrDefault("MongoDB DB user", ""),
+                channelsSection.getOrDefault("MongoDB DB password", "")
+        );
+    }
+    //TODO: more validation
+    private void validate() throws Exception{
+        if (serverName.isEmpty())
+            throw new Exception("Server not defined in configuration file.");
+
+        if (serverPort <= 0 || serverPort > 65535)
+            throw new Exception("Server port number cannot be less/equal zero or greater then 65535");
+
+        if (userNick.isEmpty())
+            throw new Exception("Configuration issue: no nickname specified. ");
+
+        if (! userNickPass.isEmpty()) {
+            if (userNickAuthStyle.isEmpty())
+                throw new Exception("Configuration issue: password specified while auth method is not.");
+
+            if ( ! userNickAuthStyle.equals("rusnet") && ! userNickAuthStyle.equals("freenode"))
+                throw new Exception("Configuration issue: userNickAuthStyle could be freenode or rusnet.");
+        }
     }
 }

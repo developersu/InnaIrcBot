@@ -1,5 +1,6 @@
 package InnaIrcBot.logging;
 
+import InnaIrcBot.config.LogDriverConfiguration;
 import com.mongodb.*;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
@@ -24,27 +25,15 @@ public class WorkerMongoDB implements Worker {               //TODO consider ski
     private MongoCollection<Document> collection;
     private boolean consistent;
 
-    public WorkerMongoDB(String server, String[] driverParameters, String channel){
+    public WorkerMongoDB(String server, LogDriverConfiguration logDriverConfiguration, String channel) throws Exception{
         this.server = server;
 
-        if (driverParameters.length < 2)
-            return;
-        if (driverParameters[0].isEmpty())
-            return;
-        if (driverParameters[1].isEmpty())
-            return;
+        String mongoHostAddress = logDriverConfiguration.getMongoURI();
+        String mongoDBName = logDriverConfiguration.getMongoTable();
+        String mongoUser = logDriverConfiguration.getMongoUser();
+        String mongoPass = logDriverConfiguration.getMongoPassword();
 
-        String mongoHostAddress = driverParameters[0];
-        String mongoDBName = driverParameters[1];
-
-        String mongoUser;
-        String mongoPass;
-
-        if (driverParameters.length == 4 && !driverParameters[2].isEmpty() && !driverParameters[3].isEmpty()) {
-            mongoUser = driverParameters[2];
-            mongoPass = driverParameters[3];
-        }
-        else {  // Consider that DB does not require auth, therefore any credentials are fine, since not null ;)
+        if (mongoUser.isEmpty()) {// Consider that DB does not require auth, therefore any credentials are fine, since not null ;)
             mongoUser = "anon";
             mongoPass = "anon";
         }
@@ -108,27 +97,12 @@ public class WorkerMongoDB implements Worker {               //TODO consider ski
 
         Document ping = new Document("ping", 1);
         //
-        try {
-            Document answer = mongoDB.runCommand(ping);         // reports to monitor thread if some fuckups happens
-            if (answer.get("ok") == null || (Double)answer.get("ok") != 1.0d){
-                close(server);
-                return;
-            }
-            consistent = true;
-        } catch (MongoCommandException mce){
-            System.out.println("BotMongoWorker (@"+this.server +"): Command exception. Check if username/password set correctly.");
-            close(server);           // server received by constructor, not this.server
-        } catch (MongoTimeoutException mte) {
-            System.out.println("BotMongoWorker (@"+this.server +"): Timeout exception.");
-            close(server);           // server received by constructor, not this.server
-        }catch (MongoException me){
-            System.out.println("BotMongoWorker (@"+this.server +"): MongoDB Exception.");
-            close(server);           // server received by constructor, not this.server
-        } catch (IllegalStateException ise){
-            System.out.println("BotMongoWorker (@"+this.server +"): Illegal state exception: MongoDB server already closed (not an issue).");
-            consistent = false;
-            // no need to close() obviously
+        Document answer = mongoDB.runCommand(ping);         // reports to monitor thread if some fuckups happens
+        if (answer.get("ok") == null || (Double)answer.get("ok") != 1.0d){
+            close(server);
+            return;
         }
+        consistent = true;
 
         setClosable();
     }

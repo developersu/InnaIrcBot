@@ -4,37 +4,81 @@ import InnaIrcBot.logging.SupportedLogDrivers;
 
 public class LogDriverConfiguration {
     private String name;
-    private String[] params;
 
-    public LogDriverConfiguration(String name, String[] params){
+    private final String path;
+
+    private final String mongoURI;
+    private final String mongoTable;
+    private String mongoUser;
+    private String mongoPassword;
+
+    public LogDriverConfiguration(
+            String name,
+            String path,
+            String mongoURI,
+            String mongoTable,
+            String mongoUser,
+            String mongoPassword)
+    {
         this.name = name.toLowerCase();
-        this.params = params;
+        this.path = path;
+        this.mongoURI = mongoURI;
+        this.mongoTable = mongoTable;
+        this.mongoUser = mongoUser;
+        this.mongoPassword = mongoPassword;
         validateName();
-        validateParams();
+        validateConfiguration();
     }
     private void validateName(){
         if (! SupportedLogDrivers.contains(name)) {
             name = SupportedLogDrivers.zero;
         }
     }
-    private void validateParams(){
-        if (params == null) {
-            name = SupportedLogDrivers.zero;
-            return;
+
+    private void validateConfiguration(){
+        switch (this.name){
+            case SupportedLogDrivers.files:
+            case SupportedLogDrivers.sqlite:
+                validatePath();
+                break;
+            case SupportedLogDrivers.mongodb:
+                validateMongo();
+                break;
         }
-        if (params.length == 0){
-            name = SupportedLogDrivers.zero;
-            return;
+    }
+
+    private void validatePath(){
+        try {
+            checkFieldNotEmpty(path);
         }
-        if (params[0] == null){
-            name = SupportedLogDrivers.zero;
-            return;
-        }
-        if (params[0].isEmpty()){
+        catch (Exception e){
             name = SupportedLogDrivers.zero;
         }
     }
 
+    private void validateMongo(){
+        try {
+            checkFieldNotEmpty(mongoURI);
+            checkFieldNotEmpty(mongoTable);
+            if (mongoUser == null)
+                mongoUser = "";
+            if (mongoPassword == null)
+                mongoPassword = "";
+        }
+        catch (Exception e){
+            name = SupportedLogDrivers.zero;
+        }
+    }
+    private void checkFieldNotEmpty(String field) throws Exception{
+        if (field == null || field.isEmpty()) {
+            throw new Exception();
+        }
+    }
+
     public String getName() { return name; }
-    public String[] getParams() { return params; }
+    public String getPath() { return path; }
+    public String getMongoURI() { return mongoURI; }
+    public String getMongoTable() { return mongoTable; }
+    public String getMongoUser() { return mongoUser; }
+    public String getMongoPassword() { return mongoPassword; }
 }

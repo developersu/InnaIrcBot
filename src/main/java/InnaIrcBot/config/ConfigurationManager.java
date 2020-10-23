@@ -8,7 +8,7 @@ public class ConfigurationManager {
     private final static Map<String, ConfigurationFile> configurations = Collections.synchronizedMap(new HashMap<>());
 
     public static ConfigurationFile readAndSetConfiguration(String pathToConfigurationFile) throws Exception{
-        ConfigurationFile configurationFile = ConfigurationFileReader.read(pathToConfigurationFile);
+        ConfigurationFile configurationFile = new ConfigurationFile(pathToConfigurationFile);
         configurations.put(configurationFile.getServerName(), configurationFile);
         return configurationFile;
     }

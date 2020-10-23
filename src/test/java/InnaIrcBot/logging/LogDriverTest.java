@@ -110,20 +110,34 @@ class LogDriverTest {
     }
 
     private void initializeFilesLogDriver(){
-        LogDriver.setLogDriver(serverNameFiles, new LogDriverConfiguration("FileS", new String[]{mainLogsDir.toString()}), "");
+        LogDriverConfiguration filesDrv = new LogDriverConfiguration("FileS",
+                mainLogsDir.toString(),
+                null,
+                null,
+                null,
+                null);
+        LogDriver.setLogDriver(serverNameFiles);
     }
 
     private void initializeSQLiteLogDriver(){
-        LogDriver.setLogDriver(serverNameSQLite, new LogDriverConfiguration("SQliTe", new String[]{mainSQLiteLogsDir.toString()}), "");
+        LogDriverConfiguration sqliteDrv = new LogDriverConfiguration("SQliTe",
+                mainLogsDir.toString(),
+                null,
+                null,
+                null,
+                null);
+
+        LogDriver.setLogDriver(serverNameSQLite);
     }
 
     private void initializeMongoDBLogDriver(){
-        String[] params = new String[]{"192.168.1.186:27017",
-                                        "irc",
-                                        "loper",
-                                        "password"};
-
-        LogDriver.setLogDriver("irc.tomsk.net",new LogDriverConfiguration("MongoDB", params),"");
+        LogDriverConfiguration mongoDrv = new LogDriverConfiguration("MongoDB",
+                null,
+                "192.168.1.186:27017",
+                "irc",
+                "loper",
+                "password");
+        LogDriver.setLogDriver("irc.tomsk.net");
     }
 
     private void close(){

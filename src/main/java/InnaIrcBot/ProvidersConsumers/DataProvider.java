@@ -42,9 +42,7 @@ public class DataProvider implements Runnable {
 
         ReconnectControl.register(server);
 
-        LogDriver.setLogDriver(server,
-                configurationFile.getLogDriverConfiguration(),
-                configurationFile.getApplicationLogDir());
+        LogDriver.setLogDriver(server);
 
         /* Used for sending data into consumers objects*/
         Map<String, IrcChannel> ircChannels = Collections.synchronizedMap(new HashMap<>());
@@ -76,8 +74,6 @@ public class DataProvider implements Runnable {
                             .split(" :?", 3);                        // Removing ':'
 
                     String chan = rawStrings[2].replaceAll("(\\s.?$)|(\\s.+?$)", "");
-
-                    //System.out.println("\tChannel: "+chan+"\n\tAction: "+rawStrings[1]+"\n\tSender: "+rawStrings[0]+"\n\tMessage: "+rawStrings[2]+"\n");
 
                     if (rawStrings[1].equals("QUIT") || rawStrings[1].equals("NICK")) { // replace regex
                         for (IrcChannel ircChannel : ircChannels.values()) {

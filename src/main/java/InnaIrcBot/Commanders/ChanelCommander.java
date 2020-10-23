@@ -1,41 +1,36 @@
 package InnaIrcBot.Commanders;
 
 import InnaIrcBot.ProvidersConsumers.StreamProvider;
+import InnaIrcBot.config.ConfigurationChannel;
+import InnaIrcBot.config.ConfigurationManager;
 
-import java.io.*;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.regex.Pattern;
-                                                            //TODO: FLOOD, JOIN FLOOD
-                                                            // TODO: @ configuration level: if in result we have empty string, no need to pass it to server
+                                                            //TODO: FLOOD
 public class ChanelCommander implements Runnable {
     private final BlockingQueue<String> streamQueue;
     private final String server;
     private final String channel;
                                                             //TODO: add timers
-    private final HashMap<String, String[]> joinMap;               // Mask(Pattern) ->, Action | Where Action[0] could be: raw
-    private final HashMap<String, String[]> msgMap;               // Mask(Pattern) ->, Action | Where Action[0] could be: raw
-    private final HashMap<String, String[]> nickMap;               // Mask(Pattern) ->, Action | Where Action[0] could be: raw
+    private HashMap<String, String[]> joinMap;               // Mask(Pattern) ->, Action | Where Action[0] could be: raw
+    private HashMap<String, String[]> msgMap;               // Mask(Pattern) ->, Action | Where Action[0] could be: raw
+    private HashMap<String, String[]> nickMap;               // Mask(Pattern) ->, Action | Where Action[0] could be: raw
 
-    private boolean joinFloodTrackNeed  = false;
+    private boolean joinFloodTrackNeed = false;
     private JoinFloodHandler jfh;
 
-    private boolean joinCloneTrackNeed  = false;         // todo:fix
+    private boolean joinCloneTrackNeed = false;         // todo:fix
     private JoinCloneHandler jch;
 
-    public ChanelCommander(BlockingQueue<String> stream, String serverName, String channel, String configFilePath){
+    public ChanelCommander(BlockingQueue<String> stream, String serverName, String channel) throws Exception{
         this.streamQueue = stream;
         this.server = serverName;
         this.channel = channel;
-
-        this.joinMap = new HashMap<>();
-        this.msgMap = new HashMap<>();
-        this.nickMap = new HashMap<>();
-        readConfing(configFilePath);
+        readConfing();
     }
 
     @Override
@@ -63,15 +58,10 @@ public class ChanelCommander implements Runnable {
                         break;
                         /*
                     case "PART":            // todo: need to track join flood? Fuck that. Track using JOIN
-                        break;
                     case "QUIT":            // todo: need this?
-                        break;
                     case "TOPIC":           // todo: need this?
-                        break;
                     case "MODE":            // todo: need this?
-                        break;
-                    case "KICK":            // todo: need this?
-                        break;              */
+                    case "KICK":            // todo: need this?              */
                     default:
                         break;
                 }
@@ -240,72 +230,23 @@ public class ChanelCommander implements Runnable {
                 executiveStr.append(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
         }
         StreamProvider.writeToStream(server, executiveStr.toString());
+    }
 
-    }
-    // TSV
-    private void parse(String[] directive){
-        if (directive.length >= 3 && directive[0] != null && !directive[0].startsWith("#") && directive[1] != null && directive[2] != null){
-        // System.out.println(Arrays.toString(directive));         // TODO:debug
-            switch (directive[0].toLowerCase()){
-                case "join":
-                    joinMap.put(directive[1], Arrays.copyOfRange(directive, 2, directive.length));
-                    break;
-                case "msg":
-                    msgMap.put(directive[1], Arrays.copyOfRange(directive, 2, directive.length));
-                    break;
-                case "nick":
-                    nickMap.put(directive[1], Arrays.copyOfRange(directive, 2, directive.length));
-                    break;
-                case "joinfloodcontrol":
-                    if (!directive[1].isEmpty() && !directive[2].isEmpty() && Pattern.matches("^[0-9]+?$", directive[1].trim()) && Pattern.matches("^[0-9]+?$", directive[2].trim())) {
-                        int events = Integer.parseInt(directive[1].trim());
-                        int timeFrame = Integer.parseInt(directive[2].trim());
-                        if (events > 0 && timeFrame > 0) {
-                            jfh = new JoinFloodHandler(events, timeFrame, server, channel);
-                            joinFloodTrackNeed = true;
-                        }
-                        else {
-                            System.out.println("Internal issue: thread ChanelCommander->parse(): 'Number of events' and/or 'Time Frame in seconds' should be greater than 0");
-                        }
-                    }
-                    else
-                        System.out.println("Internal issue: thread ChanelCommander->parse(): 'Number of events' and/or 'Time Frame in seconds' should be numbers greater than 0");
-                    break;
-                case "joinclonecontrol":
-                    if (!directive[1].isEmpty() && !directive[2].isEmpty() && Pattern.matches("^[0-9]+?$", directive[1].trim())) {
-                        int events = Integer.parseInt(directive[1].trim());
-                        if (events > 0){
-                            jch = new JoinCloneHandler(directive[2], events, server, channel);       // TODO: REMOVE
-                            joinCloneTrackNeed = true;
-                        }
-                        else {
-                            System.out.println("Internal issue: thread ChanelCommander->parse(): 'Number of events' should be greater than 0");
-                        }
-                    } else {
-                        System.out.println("Internal issue: thread ChanelCommander->parse(): 'Number of events' should be greater than 0 and pattern shouldn't be empty.");
-                    }
-            }
-        }
-    }
     private String simplifyNick(String nick){ return nick.replaceAll("!.*$",""); }
 
-    private void readConfing(String confFilesPath){
-        if (!confFilesPath.endsWith(File.separator))
-            confFilesPath += File.separator;
+    private void readConfing() throws Exception{
+        ConfigurationChannel configChannel = ConfigurationManager.getConfiguration(server).getChannelConfig(channel);
+        joinMap = configChannel.getJoinMap();
+        msgMap = configChannel.getMsgMap();
+        nickMap = configChannel.getNickMap();
 
-        File file = new File(confFilesPath+server+ channel +".csv");  // TODO: add/search for filename
-
-        if (!file.exists())
-            return;
-        try {
-            BufferedReader br = new BufferedReader(new FileReader(file));
-            String line;
-            while ((line = br.readLine()) != null) {
-                parse(line.split("\t"));
-            }
+        if (configChannel.isJoinFloodControl()) {
+            jfh = new JoinFloodHandler(configChannel.getJoinFloodControlEvents(), configChannel.getJoinFloodControlTimeframe(), server, channel);
+            joinFloodTrackNeed = true;
         }
-        catch (Exception e) {
-            System.out.println("Internal issue: thread ChanelCommander->readConfig():\t\n"+e.getMessage());
+        if (configChannel.isJoinCloneControl()) {
+            jch = new JoinCloneHandler(configChannel.getJoinCloneControlPattern(), configChannel.getJoinCloneControlTimeframe(), server, channel);       // TODO: REMOVE
+            joinCloneTrackNeed = true;
         }
     }
 }

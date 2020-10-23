@@ -6,6 +6,7 @@ import InnaIrcBot.IrcChannel;
 import InnaIrcBot.logging.LogDriver;
 import InnaIrcBot.logging.Worker;
 import InnaIrcBot.config.ConfigurationManager;
+import InnaIrcBot.logging.WorkerZero;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -43,15 +44,12 @@ public class ChanConsumer implements Runnable {
         this.nick = ownNick;
         this.rejoin = ConfigurationManager.getConfiguration(serverName).getRejoinOnKick();
         this.channels = channels;
-        // Create chanel commander thread, get pipe
-        getChanelCommander(
-                ConfigurationManager.getConfiguration(serverName).getChanelConfigurationsPath()
-        );
+        getChanelCommander();
     }
     // Create ChanelCommander
-    private void getChanelCommander(String chanelConfigurationsPath){
+    private void getChanelCommander() throws Exception{
         this.queue = new ArrayBlockingQueue<>(GlobalData.CHANNEL_QUEUE_CAPACITY);
-        ChanelCommander commander = new ChanelCommander(queue, serverName, channelName, chanelConfigurationsPath);
+        ChanelCommander commander = new ChanelCommander(queue, serverName, channelName);
         this.channelCommanderThread = new Thread(commander);
         this.channelCommanderThread.start();
     }
@@ -147,7 +145,7 @@ public class ChanConsumer implements Runnable {
         System.out.println("ChanConsumer (@"+serverName+"/"+channelName+")->fixLogDriverIssues(): Some issues detected. Trying to fix...");
         this.writerWorker = LogDriver.getWorker(serverName, channelName);       // Reset logDriver and try using the same one
         if (! writerWorker.logAdd(a, b, c)){                                       // Write to it what was not written (most likely) and if it's still not consistent:
-            this.writerWorker = LogDriver.getZeroWorker();
+            this.writerWorker = new WorkerZero();
             System.out.println("ChanConsumer (@"+serverName+"/"+channelName+")->fixLogDriverIssues(): failed to use defined LogDriver. Using ZeroWorker instead.");
         }
     }

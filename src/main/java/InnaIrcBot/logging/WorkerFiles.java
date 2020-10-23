@@ -1,5 +1,7 @@
 package InnaIrcBot.logging;
 
+import InnaIrcBot.config.LogDriverConfiguration;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -17,10 +19,10 @@ public class WorkerFiles implements Worker {
 
     private boolean consistent;
 
-    public WorkerFiles(String server, String[] driverParameters, String channel){
+    public WorkerFiles(String server, LogDriverConfiguration logDriverConfiguration, String channel){
         this.channel = channel.replaceAll(File.separator, ",");
 
-        formatFilePath(server, driverParameters);
+        formatFilePath(server, logDriverConfiguration.getPath());
 
         try {
             createServerFolder();
@@ -31,9 +33,7 @@ public class WorkerFiles implements Worker {
         }
     }
 
-    private void formatFilePath(String server, String[] driverParameters){
-        String dirLocation = driverParameters[0].trim();                // TODO: MOVE trim() out of here
-
+    private void formatFilePath(String server, String dirLocation){
         if (! dirLocation.endsWith(File.separator))
             dirLocation += File.separator;
 
