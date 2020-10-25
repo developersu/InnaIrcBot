@@ -4,84 +4,86 @@ import InnaIrcBot.Commanders.CTCPHelper;
 import InnaIrcBot.Commanders.PrivateMsgCommander;
 import InnaIrcBot.ReconnectControl;
 import InnaIrcBot.config.ConfigurationFile;
-import InnaIrcBot.GlobalData;
 import InnaIrcBot.IrcChannel;
 import InnaIrcBot.logging.LogDriver;
 import InnaIrcBot.logging.WorkerSystem;
 
-import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 
 public class SystemConsumer implements Runnable{
     private final BlockingQueue<String> systemQueue;
-    private WorkerSystem writerWorker;
+    private final WorkerSystem writerWorker;
     private String nick;
-    private String serverName;
+    private final String server;
     private final Map<String, IrcChannel> channels;
-    private ConfigurationFile configurationFile;
+    private final ConfigurationFile configurationFile;
 
-    private PrivateMsgCommander commander;
+    private final PrivateMsgCommander commander;
 
-    private LocalDateTime lastCTCPReplyTime;
-
-    private ArrayList<Thread> channelThreads;
+    private final ArrayList<Thread> channelThreads;
     private int nickTail = 0;
+    private final SystemCTCP systemCTCP;
 
-    SystemConsumer(BlockingQueue<String> systemQueue, String userNick, Map<String, IrcChannel> channels, ConfigurationFile configurationFile) {
-        this.systemQueue = systemQueue;
-        this.writerWorker = LogDriver.getSystemWorker(configurationFile.getServerName());
+    private static final HashMap<String, BlockingQueue<String>> systemConsumers = new HashMap<>();
+    public static synchronized BlockingQueue<String> getSystemConsumer(String server){
+        return systemConsumers.get(server);
+    }
+
+    SystemConsumer(String userNick, Map<String, IrcChannel> channels, ConfigurationFile configurationFile) {
+        this.systemQueue = channels.get("").getChannelQueue();
         this.nick = userNick;
-        this.serverName = configurationFile.getServerName();
+        this.server = configurationFile.getServerName();
+        this.writerWorker = LogDriver.getSystemWorker(server);
         this.channels = channels;
         this.channelThreads = new ArrayList<>();
         this.configurationFile = configurationFile;
-        this.commander = new PrivateMsgCommander(serverName, this.configurationFile.getBotAdministratorPassword());
+        this.commander = new PrivateMsgCommander(server, this.configurationFile.getBotAdministratorPassword());
+        this.systemCTCP = new SystemCTCP(server, configurationFile.getCooldownTime(), writerWorker);
 
-        lastCTCPReplyTime = LocalDateTime.now();
+        systemConsumers.put(server, systemQueue);
     }
 
     @Override
     public void run() {
-        System.out.println("["+LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))+"] THREAD "+serverName+":[system] started");      // TODO:REMOVE DEBUG
+        System.out.println("["+LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))
+                +"] Thread SystemConsumer \""+ server +"\": started");      // TODO:REMOVE
 
-        setMainRoutine();
+        startMainRoutine();
+        close();
 
-        for (Thread channel : channelThreads) {   //TODO: check, code duplication. see Data provider constructor
-            channel.interrupt();
-        }
-
-        writerWorker.close();
-        System.out.println("["+LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))+"] THREAD "+serverName+":[system] ended");       // TODO:REMOVE DEBUG
+        System.out.println("["+LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))
+                +"] Thread SystemConsumer \""+ server +"\": ended");       // TODO:REMOVE
     }
 
-    private void setMainRoutine(){
+    private void startMainRoutine(){
         try {
             while (true) {
                 String data = systemQueue.take();
-                String[] dataStrings = data.split(" ",3);
+                String[] dataStrings = data.split(" :?",3);
                 //TODO: handle mode change
-                switch (dataStrings[0]){
+                switch (dataStrings[1]){
                     case "PRIVMSG":
                         if (dataStrings[2].indexOf("\u0001") < dataStrings[2].lastIndexOf("\u0001")) {
-                            replyCTCP(simplifyNick(dataStrings[1]), dataStrings[2].substring(dataStrings[2].indexOf(":") + 1));
+                            String sender = simplifyNick(dataStrings[0]);
+                            String message = dataStrings[2].substring(dataStrings[2].indexOf(":") + 1);
+                            systemCTCP.replyCTCP(sender, message);
                         }
                         else {
-                            commander.receiver(dataStrings[1], dataStrings[2].replaceAll("^.+?:", "").trim());
-                            writerWorker.logAdd("[system]", "PRIVMSG from "+dataStrings[1]+" received: ",
-                                    dataStrings[2].replaceAll("^.+?:", "").trim());
+                            commander.receiver(dataStrings[0], dataStrings[2].replaceAll("^.+?:", "").trim());
+                            writerWorker.log(dataStrings[1]+" "+dataStrings[0]+" :", dataStrings[2].replaceAll("^.+?:", "").trim());
                         }
                         break;
                     case "INNA":
                         String[] splitter;
-                        if (dataStrings.length > 2){                                                        // Don't touch 'cuz it's important
+                        if (dataStrings.length > 2){                                 // Don't touch 'cuz it's important
                             splitter = dataStrings[2].split(" ", 2);
                             if (splitter.length == 2){
-                                handleSpecial(dataStrings[1], splitter[0], splitter[1]);
+                                handleSpecial(dataStrings[0], splitter[0], splitter[1]);
                             }
                         }
                         break;
@@ -91,44 +93,12 @@ public class SystemConsumer implements Runnable{
             }
         }
         catch (InterruptedException ie){
-            System.out.println("Thread SystemConsumer->run() interrupted.");           // TODO: reconnect OR AT LEAST DIE
+            System.out.println("Thread SystemConsumer interrupted.");           // TODO: reconnect OR AT LEAST DIE
         }
         catch (Exception e){
-            System.out.println("Internal issue: thread SystemConsumer->run(): "+e.getMessage());           // TODO: DO.. some thing
+            System.out.println("Internal issue: SystemConsumer: "+e.getMessage());           // TODO: DO.. some thing
+            e.printStackTrace();
         }
-    }
-
-    private void replyCTCP(String sender, String message) {      // got simplified nick
-        // TODO: Consider moving to config file. Now set to 3 sec
-        if (lastCTCPReplyTime.isAfter(LocalDateTime.now().minusSeconds(3)))
-            return;
-
-        lastCTCPReplyTime = LocalDateTime.now();
-
-        switch (message) {
-            case "\u0001VERSION\u0001":
-                StreamProvider.writeToStream(serverName, "NOTICE " + sender + " :\u0001VERSION " + GlobalData.getAppVersion() + "\u0001");
-                writerWorker.logAdd("[system]", "catch/handled CTCP VERSION from", sender);
-                return;
-            case "\u0001CLIENTINFO\u0001":
-                StreamProvider.writeToStream(serverName, "NOTICE " + sender + " :\u0001CLIENTINFO ACTION PING VERSION TIME CLIENTINFO SOURCE\u0001");
-                writerWorker.logAdd("[system]", "catch/handled CTCP CLIENTINFO from", sender);
-                return;
-            case "\u0001TIME\u0001":
-                StreamProvider.writeToStream(serverName, "NOTICE " + sender + " :\u0001TIME " + ZonedDateTime.now().format(DateTimeFormatter.RFC_1123_DATE_TIME) + "\u0001");
-                writerWorker.logAdd("[system]", "catch/handled CTCP TIME from", sender);
-                return;
-            case "\u0001SOURCE\u0001":
-                StreamProvider.writeToStream(serverName, "NOTICE " + sender + " :\u0001SOURCE https://github.com/developersu/InnaIrcBot\u0001");
-                writerWorker.logAdd("[system]", "catch/handled CTCP TIME from", sender);
-                return;
-        }
-        if (message.startsWith("\u0001PING ") && message.endsWith("\u0001")) {
-            StreamProvider.writeToStream(serverName, "NOTICE " + sender + " :" + message);
-            writerWorker.logAdd("[system]", "catch/handled CTCP PING from", sender);
-            return;
-        }
-        writerWorker.logAdd("[system]", "catch unknown CTCP request \"" + message + "\" from ", sender);
     }
 
     private String simplifyNick(String nick){ return nick.replaceAll("!.*$",""); }
@@ -138,22 +108,22 @@ public class SystemConsumer implements Runnable{
         if (ircChannel == null)
             return;
         String ircFormatterMessage = event+" "+nick+" "+channelName+" "+message;
-        //System.out.println("Formatted: |"+event+"|"+nick+"|"+channelName+" "+message+"|");
+
         ircChannel.getChannelQueue().add(ircFormatterMessage);
     }
     //todo: handle nickserv messages somehow
-    private void handleNumeric(String eventNum, String sender, String message) throws Exception{
+    private void handleNumeric(String sender, String eventNum, String message) throws Exception{
         switch (eventNum){
             case "501":                                                             // Notify user about incorrect setup
-                writerWorker.logAdd("[system]", "catch/handled:", eventNum
+                writerWorker.log("catch/handled:", eventNum
                         + " [MODE message was sent with a nickname parameter and that the a mode flag sent was not recognized.]");
                 break;
             case "433":                                                             // TODO: try to use alternative nickname
-                writerWorker.logAdd("[system]", "catch/handled:", eventNum
+                writerWorker.log("catch/handled:", eventNum
                         + " [nickname already in use and will be changed]");
                 break;
             case "353":
-                writerWorker.logAdd("[system]", "catch/handled:", eventNum+" [RPL_NAMREPLY]");
+                writerWorker.log("catch/handled:", eventNum+" [RPL_NAMREPLY]");
                 String channelName = message.substring(nick.length()+3).replaceAll("\\s.*$", "");
 
                 IrcChannel ircChannel = channels.get(channelName);
@@ -164,7 +134,7 @@ public class SystemConsumer implements Runnable{
             case "NICK":
                 if (sender.startsWith(nick+"!")) {
                     nick = message.trim();
-                    writerWorker.logAdd("[system]", "catch own NICK change:", sender+" to: "+message);
+                    writerWorker.log("catch own NICK change:", sender+" to: "+message);
                 }
                 break;
             case "JOIN":
@@ -182,43 +152,53 @@ public class SystemConsumer implements Runnable{
                     newIrcChannelThread.start();
                     channelThreads.add(newIrcChannelThread);
                     //proxyAList.get(message).add(eventNum+" "+sender+" "+message);       // Add message to array linked
-                    writerWorker.logAdd("[system]", "joined to channel ", message);
+                    writerWorker.log("joined channel ", message);
                 }
                 break;
             case "401":     // No such nick/channel
                 //System.out.println("|"+message.replaceAll("^(\\s)?.+?(\\s)|((\\s)?:No such nick/channel)","")+"|");
-                CTCPHelper.getInstance().handleErrorReply(serverName,  message.replaceAll("^(\\s)?.+?(\\s)|((\\s)?:No such nick/channel)",""));
-                writerWorker.logAdd("[system]", "catch: "+eventNum+" from: "+sender+" :",message+" [ok]");
+                CTCPHelper.getInstance().handleErrorReply(server,  message.replaceAll("^(\\s)?.+?(\\s)|((\\s)?:No such nick/channel)",""));
+                writerWorker.log("catch: "+eventNum+" from: "+sender+" :",message+" [ok]");
                 break;
             case "NOTICE":
-                CTCPHelper.getInstance().handleCtcpReply(serverName, simplifyNick(sender), message.replaceAll("^.+?:", "").trim());
-                writerWorker.logAdd("[system]", "NOTICE from "+sender+" received: ", message.replaceAll("^.+?:", "").trim());
+                CTCPHelper.getInstance().handleCtcpReply(server, simplifyNick(sender), message.replaceAll("^.+?:", "").trim());
+                writerWorker.log("NOTICE from "+sender+" received: ", message.replaceAll("^.+?:", "").trim());
                 break;
             case "001":
                 sendUserModes();
                 sendNickPassword();
                 joinChannels();
+                writerWorker.log(eventNum, message);
                 break;
             case "443":
                 String newNick = nick+"|"+nickTail++;
-                StreamProvider.writeToStream(serverName,"NICK "+newNick);
+                StreamProvider.writeToStream(server,"NICK "+newNick);
                 break;
             case "464":  // password for server/znc/bnc
-                StreamProvider.writeToStream(serverName,"PASS "+configurationFile.getServerPass());
+                StreamProvider.writeToStream(server,"PASS "+configurationFile.getServerPass());
+                writerWorker.log(eventNum, message);
                 break;
             case "432":
+                writerWorker.log(eventNum, message);
                 System.out.println("Configuration issue: Nickname contains unacceptable characters (432 ERR_ERRONEUSNICKNAME).");
-                ReconnectControl.update(serverName, false);
-
-                break;
             case "465":
-                ReconnectControl.update(serverName, false);
-
+                ReconnectControl.update(server, false);
+                writerWorker.log(eventNum, message);
                 break;
             case "QUIT":  // TODO: Do something?
+                writerWorker.log(eventNum, message);
+                break;
+            case "375":
+                writerWorker.log("MOTD Start:", message.replaceAll("^.+?:", ""));
+                break;
+            case "372":
+                writerWorker.log("MOTD:", message.replaceAll("^.+?:", ""));
+                break;
+            case "376":
+                writerWorker.log("MOTD End:", message.replaceAll("^.+?:", ""));
                 break;
             default:
-                writerWorker.logAdd("[system]", "catch: "+eventNum+" from: "+sender+" :",message);
+                writerWorker.log("catch: "+eventNum+" from: "+sender+" :", message);
                 break;
             // 431  ERR_NONICKNAMEGIVEN     how can we get this?
             // 436  ERR_NICKCOLLISION
@@ -240,7 +220,7 @@ public class SystemConsumer implements Runnable{
             message.append("\n");
         }
 
-        StreamProvider.writeToStream(serverName, message.toString());
+        StreamProvider.writeToStream(server, message.toString());
     }
 
     private void sendNickPassword(){
@@ -249,11 +229,11 @@ public class SystemConsumer implements Runnable{
 
         switch (configurationFile.getUserNickAuthStyle()){
             case "freenode":
-                StreamProvider.writeToStream(serverName,"PRIVMSG NickServ :IDENTIFY "
+                StreamProvider.writeToStream(server,"PRIVMSG NickServ :IDENTIFY "
                         + configurationFile.getUserNickPass());
                 break;
             case "rusnet":
-                StreamProvider.writeToStream(serverName,"NickServ IDENTIFY "
+                StreamProvider.writeToStream(server,"NickServ IDENTIFY "
                         + configurationFile.getUserNickPass());
         }
     }
@@ -261,12 +241,21 @@ public class SystemConsumer implements Runnable{
     private void joinChannels(){
         StringBuilder joinMessage = new StringBuilder();
 
-        for (String cnl : configurationFile.getChannels()) {       // TODO: add validation of channels.
+        for (String channel : configurationFile.getChannels()) {       // TODO: add validation of channels.
             joinMessage.append("JOIN ");
-            joinMessage.append(cnl);
+            joinMessage.append(channel);
             joinMessage.append("\n");
         }
 
-        StreamProvider.writeToStream(serverName, joinMessage.toString());
+        StreamProvider.writeToStream(server, joinMessage.toString());
+    }
+
+    private void close(){
+        for (Thread channel : channelThreads) {   //TODO: check, code duplication. see Data provider constructor
+            channel.interrupt();
+        }
+
+        writerWorker.close();
+        systemConsumers.remove(server);
     }
 }

@@ -1,7 +1,6 @@
 package InnaIrcBot.Commanders;
 
 import InnaIrcBot.ProvidersConsumers.StreamProvider;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -37,7 +36,6 @@ class JoinFloodHandlerTest {
             testSocket.connect(new InetSocketAddress(60000));
 
             StreamProvider.setStream(serverName, testSocket);
-            StreamProvider.setSysConsumer(serverName, new ArrayBlockingQueue<>(100));
         }
         catch (IOException e){
             e.printStackTrace();

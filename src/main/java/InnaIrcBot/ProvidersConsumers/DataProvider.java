@@ -11,103 +11,53 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.concurrent.BlockingQueue;
 
 
 public class DataProvider implements Runnable {
-    private final ConfigurationFile configurationFile;
+    private final ConfigurationFile configuration;
     private final String server;
-    private final String nickName;
+    private final String nick;
     private BufferedReader mainReader;
+
+    private Thread systemConsumerThread;
+    private Map<String, IrcChannel> ircChannels;
+    private IrcChannel systemConsumerChannel;
 
     /**
      * Initiate connection and prepare input/output streams for run()
      * */
-    public DataProvider(ConfigurationFile configurationFile){
-        this.configurationFile = configurationFile;
-        this.server = configurationFile.getServerName();
-        this.nickName = configurationFile.getUserNick();
+    public DataProvider(ConfigurationFile configuration){
+        this.configuration = configuration;
+        this.server = configuration.getServerName();
+        this.nick = configuration.getUserNick();
     }
 
     public void run(){
         try {
-            connect();
+            connectSocket();
+
+            ReconnectControl.register(server);
+            LogDriver.setLogDriver(server);
+
+            ircChannels = Collections.synchronizedMap(new HashMap<>());
+            systemConsumerChannel = new IrcChannel("");
+            ircChannels.put(systemConsumerChannel.toString(), systemConsumerChannel);
+
+            startSystemConsumer();
+            sendUserNickAndIdent();
+
+            startLoop();
+
         } catch (Exception e){
-            System.out.println("Internal issue: DataProvider->run() caused exception:\n\t"+e.getMessage());
-            e.printStackTrace();
-
-            close();
-            return;
+            System.out.println("DataProvider exception: "+e.getMessage());
         }
-
-        ReconnectControl.register(server);
-
-        LogDriver.setLogDriver(server);
-
-        /* Used for sending data into consumers objects*/
-        Map<String, IrcChannel> ircChannels = Collections.synchronizedMap(new HashMap<>());
-
-        IrcChannel systemConsumerChannel = new IrcChannel("");
-        BlockingQueue<String> systemConsumerQueue = systemConsumerChannel.getChannelQueue();
-
-        Thread SystemConsumerThread = new Thread(
-                new SystemConsumer(systemConsumerQueue, nickName, ircChannels, this.configurationFile));
-        SystemConsumerThread.start();
-
-        StreamProvider.setSysConsumer(server, systemConsumerQueue);    // Register system consumer at StreamProvider
-
-        ircChannels.put(systemConsumerChannel.toString(), systemConsumerChannel);        // Not sure that PrintWriter is thread-safe..
-        ////////////////////////////////////// Start loop //////////////////////////////////////////////////////////////
-        StreamProvider.writeToStream(server,"NICK "+this.nickName);
-        StreamProvider.writeToStream(server,"USER "+ configurationFile.getUserIdent()+" 8 * :"+ configurationFile.getUserRealName());       // TODO: Add usermode 4 rusnet
-
-        try {
-            String rawMessage;
-            String[] rawStrings;    // prefix[0] command[1] command-parameters\r\n[2]
-            //if there is no prefix, you should assume the message came from your client.
-
-            while ((rawMessage = mainReader.readLine()) != null) {
-                System.out.println(rawMessage);
-                if (rawMessage.startsWith(":")) {
-                    rawStrings = rawMessage
-                            .substring(1)
-                            .split(" :?", 3);                        // Removing ':'
-
-                    String chan = rawStrings[2].replaceAll("(\\s.?$)|(\\s.+?$)", "");
-
-                    if (rawStrings[1].equals("QUIT") || rawStrings[1].equals("NICK")) { // replace regex
-                        for (IrcChannel ircChannel : ircChannels.values()) {
-                            ircChannel.getChannelQueue().add(rawStrings[1] + " " + rawStrings[0] + " " + rawStrings[2]);
-                        }
-                    }
-                    else if (ircChannels.containsKey(chan)) {
-                        IrcChannel chnl = ircChannels.get(chan);
-                        chnl.getChannelQueue().add(rawStrings[1] + " " + rawStrings[0] + " " + rawStrings[2]);
-                    }
-                    else {
-                        systemConsumerQueue.add(rawStrings[1] + " " + rawStrings[0] + " " + rawStrings[2]);
-                    }
-                }
-                else if (rawMessage.startsWith("PING :")) {
-                    sendPingReply(rawMessage);
-                }
-                else {
-                    System.out.println("Not a valid response=" + rawMessage);
-                }
-            }
-        } catch (IOException e){
-            System.out.println("Socket issue: I/O exception: "+e.getMessage());                  //Connection closed. TODO: MAYBE try reconnect
-        }
-        finally {
-            SystemConsumerThread.interrupt();
-            close();
-        }
+        close();
     }
 
-    private void connect() throws Exception{
-        final int port = configurationFile.getServerPort();
+    private void connectSocket() throws Exception{
+        final int port = configuration.getServerPort();
         InetAddress inetAddress = InetAddress.getByName(server);
-        Socket socket = new Socket();              // TODO: set timeout?
+        Socket socket = new Socket();
         for (int i = 0; i < 5; i++) {
             socket.connect(new InetSocketAddress(inetAddress, port), 5000); // 5sec
             if (socket.isConnected())
@@ -117,18 +67,63 @@ public class DataProvider implements Runnable {
             throw new Exception("Unable to connect server.");
 
         StreamProvider.setStream(server, socket);
-
-        InputStream inStream = socket.getInputStream();
-        InputStreamReader isr = new InputStreamReader(inStream, StandardCharsets.UTF_8);  //TODO set charset in options;
-        mainReader = new BufferedReader(isr);
+        //TODO set charset in options;
+        mainReader = new BufferedReader(
+                new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8)
+        );
+    }
+    private void sendUserNickAndIdent(){
+        StreamProvider.writeToStream(server,"NICK " + nick);
+        StreamProvider.writeToStream(server,"USER " + configuration.getUserIdent()+" 8 * :"+ configuration.getUserRealName()); // TODO: Add usermode 4 rusnet
+    }
+    private void startSystemConsumer(){
+        systemConsumerThread = new Thread(
+                new SystemConsumer(nick, ircChannels, configuration));
+        systemConsumerThread.start();
     }
 
-    private void sendPingReply(String rawData){
-        StreamProvider.writeToStream(server,"PONG :" + rawData.replace("PING :", ""));
+    private void startLoop() throws Exception{
+        String rawMessage;
+        while ((rawMessage = mainReader.readLine()) != null) {
+            if (rawMessage.startsWith(":")) {
+                handleRegular(rawMessage.substring(1));
+            }
+            else if (rawMessage.startsWith("PING :")) {
+                sendPingReply(rawMessage);
+            }
+            else {
+                System.out.println(rawMessage);
+            }
+        }
+    }
+    private void handleRegular(String rawMessage){
+        //System.out.println(rawMessage);
+        String[] rawStrings = rawMessage.split(" :?", 3);
+
+        if (rawStrings[1].equals("QUIT") || rawStrings[1].equals("NICK")) {
+            for (IrcChannel ircChannel : ircChannels.values()) {
+                ircChannel.getChannelQueue().add(rawMessage);
+            }
+            return;
+        }
+
+        String channel = rawStrings[2].replaceAll("(\\s.?$)|(\\s.+?$)", "");
+
+        IrcChannel ircChannel = ircChannels.getOrDefault(channel, systemConsumerChannel);
+        ircChannel.getChannelQueue().add(rawMessage);
+    }
+
+    private void sendPingReply(String message){
+        StreamProvider.writeToStream(server, message.replaceFirst("PING", "PONG"));
     }
 
     private void close(){
-        StreamProvider.delStream(server);
-        ReconnectControl.notify(server);
+        try {
+            systemConsumerThread.interrupt();
+            systemConsumerThread.join();
+            StreamProvider.delStream(server);
+            ReconnectControl.notify(server);
+        }
+        catch (InterruptedException ignored){}
     }
 }

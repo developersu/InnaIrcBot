@@ -62,36 +62,6 @@ public class ConfigurationFileGenerator {
         if (! Files.exists(folderPath))
             Files.createDirectories(folderPath);
     }
-    /*
-    private void createConfigurationFileOld() throws IOException{
-        File configurationFile = new File(this.fileLocation);
-
-        Writer writerFile = new OutputStreamWriter(new FileOutputStream(configurationFile.getAbsolutePath()), StandardCharsets.UTF_8);
-
-        ConfigurationFile configurationFileObject = new ConfigurationFile("srv",
-                6667,
-                "",
-                new String[] {"#lpr",
-                        "#main"},
-                "user_nick",
-                "ident",
-                "bot",
-                "",
-                "freenode",
-                "ix",
-                true,
-                "files",
-                new String[] {System.getProperty("user.home")},
-                "pswd",
-                System.getProperty("user.home"),
-                "/var/logs/"
-        );
-
-        Gson writingStorageObject = new GsonBuilder().setPrettyPrinting().create();
-        writingStorageObject.toJson(configurationFileObject, writerFile);
-        writerFile.close();
-    }
-    */
     private void createConfigurationFile() throws IOException{
         final String mainSectionName = "main";
         final String channelSectionName = "channels";
@@ -127,6 +97,7 @@ public class ConfigurationFileGenerator {
         mainSection.put( "auto rejoin", true);
         mainSection.put( "bot administrator password", "i_pswd");
         mainSection.put( "application logs", "/tmp");
+        mainSection.put("cooldown (sec)", 3);
 
         Ini.Section loggingSection = ini.add("logging");
         loggingSection.put( "driver", "files");

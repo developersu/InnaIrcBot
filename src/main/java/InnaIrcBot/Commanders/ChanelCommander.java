@@ -20,10 +20,10 @@ public class ChanelCommander implements Runnable {
     private HashMap<String, String[]> msgMap;               // Mask(Pattern) ->, Action | Where Action[0] could be: raw
     private HashMap<String, String[]> nickMap;               // Mask(Pattern) ->, Action | Where Action[0] could be: raw
 
-    private boolean joinFloodTrackNeed = false;
+    private boolean joinFloodTrackNeed;
     private JoinFloodHandler jfh;
 
-    private boolean joinCloneTrackNeed = false;         // todo:fix
+    private boolean joinCloneTrackNeed;
     private JoinCloneHandler jch;
 
     public ChanelCommander(BlockingQueue<String> stream, String serverName, String channel) throws Exception{
@@ -40,21 +40,21 @@ public class ChanelCommander implements Runnable {
         try {
             while (true) {
                 String data = streamQueue.take();
-                String[] dataStrings = data.split(" ",3);
+                String[] dataStrings = data.split(" :?",3);
 
-                switch (dataStrings[0]) {
+                switch (dataStrings[1]) {
                     case "NICK":
-                        nickCame(dataStrings[2]+dataStrings[1].replaceAll("^.+?!","!"));
+                        nickCame(dataStrings[2]+dataStrings[0].replaceAll("^.+?!","!"));
                         break;              // todo: need to track join flood
                     case "JOIN":
                         if (joinFloodTrackNeed)
-                            jfh.track(simplifyNick(dataStrings[1]));
+                            jfh.track(simplifyNick(dataStrings[0]));
                         if (joinCloneTrackNeed)
-                            jch.track(dataStrings[1]);
-                        joinCame(dataStrings[1]);
+                            jch.track(dataStrings[0]);
+                        joinCame(dataStrings[0]);
                         break;
                     case "PRIVMSG":
-                        privmsgCame(dataStrings[1], dataStrings[2]);
+                        privmsgCame(dataStrings[0], dataStrings[2]);
                         break;
                         /*
                     case "PART":            // todo: need to track join flood? Fuck that. Track using JOIN
@@ -68,9 +68,10 @@ public class ChanelCommander implements Runnable {
             }
         }
         catch (InterruptedException ie){
-            System.out.println("Internal issue: thread ChanelCommander->run() interrupted.\n\t");           // TODO: reconnect
+            System.out.println("ChanelCommander interrupted.");
         }
-        System.out.println("Thread for ChanelCommander ended");                                                   // TODO:REMOVE DEBUG
+        System.out.println("["+LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))+"] ChanelCommander thread "
+                +server+":"+this.channel +" ended");// TODO:REMOVE DEBUG
     }
 
     // Do we need old nick?
@@ -94,7 +95,7 @@ public class ChanelCommander implements Runnable {
 
                 StringBuilder whatToSendStringBuilder;
                 ArrayList<String> whatToSendList;
-                for (int i = 0; i<cmdOrMsg.length;) {
+                for (int i = 0; i < cmdOrMsg.length;) {
                     switch (cmdOrMsg[i]) {
                         case "\\chanmsg":
                             whatToSendList = new ArrayList<>();
@@ -163,15 +164,19 @@ public class ChanelCommander implements Runnable {
                                 else
                                     whatToSendStringBuilder.append(cmdOrMsg[i]);
                             }
-                            if (objectRegexp != null) {
-                                String objectToCtcp = arg1.trim().replaceAll(objectRegexp, "");     // note: trim() ?
-                                if (!objectToCtcp.isEmpty()){
-                                    if (CTCPType.startsWith("\\c"))
-                                        CTCPHelper.getInstance().registerRequest(server, channel, CTCPType.substring(2).toUpperCase(), objectToCtcp, whatToSendStringBuilder.toString());
-                                    else
-                                        CTCPHelper.getInstance().registerRequest(server, simplifyNick(arg2), CTCPType.substring(2).toUpperCase(), objectToCtcp, whatToSendStringBuilder.toString());
-                                }
-                            }
+
+                            if (objectRegexp == null)
+                                break;
+
+                            String objectToCtcp = arg1.trim().replaceAll(objectRegexp, ""); // note: trim() ?
+
+                            if (objectToCtcp.isEmpty())
+                                break;
+
+                            if (CTCPType.startsWith("\\c"))
+                                registerCTCPforChannel(CTCPType.substring(2).toUpperCase(), objectToCtcp, whatToSendStringBuilder.toString());
+                            else
+                                registerCTCPforUser(simplifyNick(arg2), CTCPType.substring(2).toUpperCase(), objectToCtcp, whatToSendStringBuilder.toString());
 
                             break;
                         default:
@@ -180,15 +185,22 @@ public class ChanelCommander implements Runnable {
                 }
             }
     }
+
     /////////   /////////
+    private void registerCTCPforChannel(String CTCPType, String object, String message){
+        CTCPHelper.getInstance().registerRequest(server, channel, CTCPType, object, message);
+    }
+    private void registerCTCPforUser(String user, String CTCPType, String object, String message){
+        CTCPHelper.getInstance().registerRequest(server, user, CTCPType, object, message);
+    }
     private void whoisAction(String who){                                               // TODO: maybe we have to extend functionality to reuse received information.
         StreamProvider.writeToStream(server, "WHOIS "+simplifyNick(who));
     }
 
-    private void msgAction(String[] messages, String who, boolean sendToPrivate){
+    private void msgAction(String[] messages, String who, boolean isToUser){
         StringBuilder executiveStr = new StringBuilder();
         executiveStr.append("PRIVMSG ");
-        if(sendToPrivate) {
+        if(isToUser) {
             executiveStr.append(simplifyNick(who));
             executiveStr.append(" :");
         }
@@ -236,6 +248,13 @@ public class ChanelCommander implements Runnable {
 
     private void readConfing() throws Exception{
         ConfigurationChannel configChannel = ConfigurationManager.getConfiguration(server).getChannelConfig(channel);
+        if (configChannel == null){
+            joinMap = new HashMap<>();
+            msgMap = new HashMap<>();
+            nickMap = new HashMap<>();
+            return;
+        }
+
         joinMap = configChannel.getJoinMap();
         msgMap = configChannel.getMsgMap();
         nickMap = configChannel.getNickMap();

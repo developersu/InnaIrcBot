@@ -29,11 +29,14 @@ public class WorkerFiles implements Worker {
             createFileWriter();
             consistent = true;
         } catch (Exception e){
-            System.out.println("BotFilesWorker (@"+server+")->constructor(): Failure:\n" + e.getMessage());
+            System.out.println("WorkerFiles (@"+server+")->constructor(): Failure:\n" + e.getMessage());
         }
     }
 
     private void formatFilePath(String server, String dirLocation){
+        if (dirLocation.isEmpty())
+            dirLocation = ".";
+
         if (! dirLocation.endsWith(File.separator))
             dirLocation += File.separator;
 
@@ -47,13 +50,13 @@ public class WorkerFiles implements Worker {
             if (file.isDirectory())
                 return;
             else
-                throw new Exception("BotFilesWorker->createServerFolder() "+filePath+" is file while directory expected.");
+                throw new Exception("WorkerFiles->createServerFolder() "+filePath+" is file while directory expected.");
         }
 
         if (file.mkdirs())
             return;
 
-        throw new Exception("BotFilesWorker->createServerFolder() Can't create directory: "+filePath);
+        throw new Exception("WorkerFiles->createServerFolder() Can't create directory: "+filePath);
     }
 
     private void resetFileWriter() throws IOException{
@@ -116,7 +119,7 @@ public class WorkerFiles implements Worker {
             fileWriter.write(string);
             fileWriter.flush();
         } catch (Exception e){
-            System.out.println("BotFilesWorker->prettyPrint() failed\n" +
+            System.out.println("WorkerFiles->prettyPrint() failed\n" +
                     "\tUnable to write logs to " + this.filePath + " "+e.getMessage());
             close();
             consistent = false;
@@ -180,7 +183,7 @@ public class WorkerFiles implements Worker {
         }
         catch (NullPointerException ignore) {}
         catch (IOException e){
-            System.out.println("BotFilesWorker->close() failed\n" +
+            System.out.println("WorkerFiles->close() failed\n" +
                     "\tUnable to properly close file: "+this.filePath);        // Live with it.
         }
         this.consistent = false;

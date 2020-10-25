@@ -21,10 +21,10 @@ public class ChanConsumer implements Runnable {
     private final BlockingQueue<String> chanConsumerQueue;
     private final String serverName;
     private final String channelName;
-    private Worker writerWorker;
-    private ArrayList<String> userList;
+    private final ArrayList<String> users;
+    private Worker logWorker;
     private String nick;
-    private final boolean rejoin;
+    private final boolean autoRejoin;
     private final Map<String, IrcChannel> channels;
 
     private Thread channelCommanderThread;
@@ -32,17 +32,20 @@ public class ChanConsumer implements Runnable {
 
     private boolean endThread = false;
 
+    private boolean hasBeenKicked;
+
     ChanConsumer(String serverName,
                  IrcChannel thisIrcChannel,
                  String ownNick,
-                 Map<String, IrcChannel> channels) throws Exception{
+                 Map<String, IrcChannel> channels) throws Exception
+    {
         this.chanConsumerQueue = thisIrcChannel.getChannelQueue();
         this.serverName = serverName;
         this.channelName = thisIrcChannel.toString();
-        this.writerWorker = LogDriver.getWorker(serverName, channelName);
-        this.userList = new ArrayList<>();
+        this.logWorker = LogDriver.getWorker(serverName, channelName);
+        this.users = new ArrayList<>();
         this.nick = ownNick;
-        this.rejoin = ConfigurationManager.getConfiguration(serverName).getRejoinOnKick();
+        this.autoRejoin = ConfigurationManager.getConfiguration(serverName).getRejoinOnKick();
         this.channels = channels;
         getChanelCommander();
     }
@@ -55,97 +58,115 @@ public class ChanConsumer implements Runnable {
     }
 
     public void run(){
-        String data;
-        String[] dataStrings;
         System.out.println("["+LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))+"] ChanConsumer thread "+serverName+":"+this.channelName +" started");                                                   // TODO:REMOVE DEBUG
         try {
             while (! endThread) {
-                data = chanConsumerQueue.take();
-                dataStrings = data.split(" ",3);
+                String data = chanConsumerQueue.take();
+                String[] dataStrings = data.split(" :?",3);
 
-                if (! trackUsers(dataStrings[0], dataStrings[1], dataStrings[2]))
+                if (trackUsers(dataStrings[1], dataStrings[0], dataStrings[2]))
                     continue;
-                // Send to chanel commander thread
-                queue.add(data);                    // TODO: Check and add consistency validation
+                // Send to channel commander thread
+                // TODO: Check and add consistency validation
+                queue.add(data);
 
-                if (!writerWorker.logAdd(dataStrings[0], dataStrings[1], dataStrings[2])){      // Write logs, check if LogDriver consistent. If not:
-                    this.fixLogDriverIssues(dataStrings[0], dataStrings[1], dataStrings[2]);
+                if (! logWorker.logAdd(dataStrings[1], dataStrings[0], dataStrings[2])){      // Write logs checks if LogDriver consistent.
+                    this.fixLogDriverIssues(dataStrings[1], dataStrings[0], dataStrings[2]);
                 }
             }
-            channels.remove(channelName);
         } catch (InterruptedException e){
-                System.out.println("ChanConsumer (@"+serverName+"/"+channelName+")->run(): Interrupted\n\t"+e);           // TODO: reconnect?
+                System.out.println("ChanConsumer (@"+serverName+"/"+channelName+")->run(): Interrupted\n\t"+e.getMessage());           // TODO: reconnect?
         }
-        writerWorker.close();
-        //Kill sub-thread
-        channelCommanderThread.interrupt();
-        System.out.println("["+LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))+"] THREAD "+serverName+":"+this.channelName +" ended");                                                   // TODO:REMOVE DEBUG
+
+        close();
+        System.out.println("["+LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))+"] THREAD "+serverName+":"+this.channelName +" ended"); // TODO:REMOVE DEBUG
     }
 
-    private boolean trackUsers(String event, String initiatorArg, String subjectArg){
+    private boolean trackUsers(String event, String initiator, String subject){
+        initiator = simplifyNick(initiator);
         switch (event) {
             case "PRIVMSG":                                                        // most common, we don't have to handle anything else
-                return true;
+                return false;
             case "JOIN":
-                addUser(simplifyNick(initiatorArg));
-                return true;
+                addUser(initiator);
+                return false;
             case "PART":
-                deleteUser(simplifyNick(initiatorArg)); // nick non-simple
-                return true;
+                deleteUser(initiator);
+                return false;
             case "QUIT":
-                if (userList.contains(simplifyNick(initiatorArg))) {
-                    deleteUser(simplifyNick(initiatorArg)); // nick non-simple
-                    return true;
+                if (users.contains(initiator)) {
+                    deleteUser(initiator);
+                    return false;
                 }
-                else
-                    return false;       // user quit, but he/she is not in this channel
+                return true;       // user quit, but he/she is not in this channel
             case "KICK":
-                if (rejoin && nick.equals(subjectArg.replaceAll("(^.+?\\s)|(\\s.+$)", "")))     // if it's me and I have rejoin policy 'Auto-Rejoin on kick'.
-                    StreamProvider.writeToStream(serverName, "JOIN " + channelName);
-                deleteUser(subjectArg.replaceAll("(^.+?\\s)|(\\s.+$)", ""));      // nick already simplified
-                return true;
-            case "NICK":
-                if (userList.contains(simplifyNick(initiatorArg))) {
-                    swapUsers(simplifyNick(initiatorArg), subjectArg);
+                String kickedUser = subject.replaceAll("(^.+?\\s)|(\\s.+$)", "");
+                if (nick.equals(kickedUser) && autoRejoin) {     // TODO: FIX
+                    hasBeenKicked = true;
+                    deleteUser(kickedUser);
                     return true;
                 }
-                else {
-                    return false;       // user changed nick, but he/she is not in this channel
+                deleteUser(kickedUser);
+                return false;
+            case "NICK":
+                if (users.contains(initiator)) {
+                    swapUsers(initiator, subject);
+                    return false;
                 }
+                return true;       // user changed nick, but he/she is not in this channel
             case "353":
-                String userOnChanStr = subjectArg.substring(subjectArg.indexOf(":") + 1);
+                String userOnChanStr = subject.substring(subject.indexOf(":") + 1);
                 userOnChanStr = userOnChanStr.replaceAll("[%@+]", "").trim();
                 String[] usersOnChanArr = userOnChanStr.split(" ");
-                userList.addAll(Arrays.asList(usersOnChanArr));
+                users.addAll(Arrays.asList(usersOnChanArr));
                 return true;
             default:
-                return true;
+                return false;
         }
     }
 
     private void addUser(String user){
-        if (!userList.contains(user))
-            userList.add(user);
+        if (! users.contains(user))
+            users.add(user);
     }
     private void deleteUser(String user){
         if (user.equals(nick)) {
             endThread = true;
         }
-        userList.remove(user);
+        users.remove(user);
     }
     private void swapUsers(String userNickOld, String userNickNew){
-        userList.remove(userNickOld);
-        userList.add(userNickNew);
+        users.remove(userNickOld);
+        users.add(userNickNew);
         if (userNickOld.equals(nick))
-            this.nick = userNickNew;
+            nick = userNickNew;
     }
     private String simplifyNick(String nick){ return nick.replaceAll("!.*$",""); }
 
+    private void close(){
+        try{
+            channels.remove(channelName);
+            logWorker.close();
+            channelCommanderThread.interrupt(); //kill sub-thread
+            channelCommanderThread.join();
+            handleAutoRejoin();
+        }
+        catch (InterruptedException e){
+            e.printStackTrace();
+        }
+    }
+
+    private void handleAutoRejoin(){
+        if (hasBeenKicked && autoRejoin) {
+            StreamProvider.writeToStream(serverName, "JOIN " + channelName);
+        }
+    }
+
     private void fixLogDriverIssues(String a, String b, String c){
         System.out.println("ChanConsumer (@"+serverName+"/"+channelName+")->fixLogDriverIssues(): Some issues detected. Trying to fix...");
-        this.writerWorker = LogDriver.getWorker(serverName, channelName);       // Reset logDriver and try using the same one
-        if (! writerWorker.logAdd(a, b, c)){                                       // Write to it what was not written (most likely) and if it's still not consistent:
-            this.writerWorker = new WorkerZero();
+        logWorker = LogDriver.getWorker(serverName, channelName);       // Reset logDriver and try using the same one
+        if (! logWorker.logAdd(a, b, c)){                               // Write to it what was not written (most likely) and if it's still not consistent:
+            logWorker = new WorkerZero();
             System.out.println("ChanConsumer (@"+serverName+"/"+channelName+")->fixLogDriverIssues(): failed to use defined LogDriver. Using ZeroWorker instead.");
         }
     }

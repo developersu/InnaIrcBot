@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 public class WorkerMongoDB implements Worker {               //TODO consider skipping checks if server already added.
     private final static Map<String, MongoClient> serversMap = Collections.synchronizedMap(new HashMap<>());
     private final String server;
-    private MongoCollection<Document> collection;
+    private final MongoCollection<Document> collection;
     private boolean consistent;
 
     public WorkerMongoDB(String server, LogDriverConfiguration logDriverConfiguration, String channel) throws Exception{
@@ -59,26 +59,7 @@ public class WorkerMongoDB implements Worker {               //TODO consider ski
                 }
             };
             */
-            ServerListener mongoServerListener = new ServerListener() {
-                @Override
-                public void serverOpening(ServerOpeningEvent serverOpeningEvent) {
-                    System.out.println("BotMongoWorker (@"+server+"): ServerListener: Server opened successfully: "+serverOpeningEvent.getServerId());
-                }
-
-                @Override
-                public void serverClosed(ServerClosedEvent serverClosedEvent) {
-                    System.out.println("BotMongoWorker (@"+server+"): ServerListener: Server has been closed");
-                }
-
-                @Override
-                public void serverDescriptionChanged(ServerDescriptionChangedEvent serverDescriptionChangedEvent) {
-                    if (!serverDescriptionChangedEvent.getNewDescription().isOk()) {
-                        close(server);           // server recieved by constructor, not this.server
-                        System.out.println("BotMongoWorker (@"+server+"): ServerListener: Server description changed (exception occurs): "
-                                + serverDescriptionChangedEvent.getNewDescription().getException());
-                    }
-                }
-            };
+            ServerListener mongoServerListener = getServerListener();
 
             MongoClientSettings MCS = MongoClientSettings.builder()
             //      .addCommandListener(mongoCommandListener)
@@ -106,6 +87,30 @@ public class WorkerMongoDB implements Worker {               //TODO consider ski
 
         setClosable();
     }
+
+    private ServerListener getServerListener(){
+        return new ServerListener() {
+            @Override
+            public void serverOpening(ServerOpeningEvent serverOpeningEvent) {
+                System.out.println("BotMongoWorker (@"+server+"): ServerListener: Server opened successfully: "+serverOpeningEvent.getServerId());
+            }
+
+            @Override
+            public void serverClosed(ServerClosedEvent serverClosedEvent) {
+                System.out.println("BotMongoWorker (@"+server+"): ServerListener: Server has been closed");
+            }
+
+            @Override
+            public void serverDescriptionChanged(ServerDescriptionChangedEvent serverDescriptionChangedEvent) {
+                if (serverDescriptionChangedEvent.getNewDescription().isOk())
+                    return;
+                System.out.println("BotMongoWorker (@"+server+"): ServerListener: Server description changed (exception occurs): "
+                        + serverDescriptionChangedEvent.getNewDescription().getException());
+                close(server);           // server recieved by constructor, not this.server
+            }
+        };
+    }
+
     private void setClosable(){
         if (! consistent)
             return;
@@ -148,23 +153,22 @@ public class WorkerMongoDB implements Worker {               //TODO consider ski
                 document.append("message1", message);
                 break;
         }
+
+        insert(document);
+
+        return consistent;
+    }
+    private void insert(Document document){
         try {
             collection.insertOne(document);                                                     // TODO: call finalize?
             consistent = true;          // if no exceptions, then true
-        } catch (MongoCommandException mce){
-            System.out.println("BotMongoWorker (@"+this.server +")->logAdd(): Command exception. Check if username/password set correctly.");
-            this.close();
-        } catch (MongoTimeoutException mte) {
-            System.out.println("BotMongoWorker (@"+this.server +")->logAdd(): Timeout exception.");
-            this.close();
         }catch (MongoException me){
-            System.out.println("BotMongoWorker (@"+this.server +")->logAdd(): MongoDB Exception.");
+            System.out.println("BotMongoWorker (@"+this.server +")->logAdd(): MongoDB Exception: "+me.getMessage());
             this.close();
         } catch (IllegalStateException ise){
             System.out.println("BotMongoWorker (@"+this.server +")->logAdd(): Illegal state exception: MongoDB server already closed (not an issue).");
             this.close();
         }
-        return consistent;
     }
 
     private long getDate(){ return System.currentTimeMillis() / 1000L; }  // UNIX time

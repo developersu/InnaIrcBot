@@ -18,212 +18,217 @@ public class PrivateMsgCommander {       // TODO: add black list: add users afte
     }
 
     public void receiver(String sender, String message){
-        if (!password.isEmpty()) {
-            if (administrators.contains(sender) && !message.isEmpty()) {
-                String[] cmd = message.split("(\\s)|(\t)+?", 2);
-                cmd[0] = cmd[0].toLowerCase();
-                if (cmd.length > 1)
-                    cmd[1] = cmd[1].trim();
+        if (password.isEmpty() || message.isEmpty())
+            return;
 
-                switch (cmd[0]){
-                    case "tell":
-                        if ((cmd.length == 2) && (cmd[1].split("(\\s)|(\t)+?",2).length == 2)) {
-                            String[] tellArgs = cmd[1].split("(\\s)|(\t)+?", 2);
-                            tell(tellArgs[0], tellArgs[1]);
-                        }
-                        else
-                            tell(simplifyNick(sender), "Pattern: tell <nick> <message>");
-                        break;
-                    case "join":
-                        if (cmd.length == 2)
-                            join(cmd[1]);
-                        else
-                            tell(simplifyNick(sender), "Pattern: join <channel>");
-                        break;
-                    case "quit":
-                        if (cmd.length == 2)
-                            quit(cmd[1]);
-                        else
-                            quit("");
-                        break;
-                    case "nick":
-                        if (cmd.length == 2)
-                            nick(cmd[1]);
-                        else
-                            tell(simplifyNick(sender), "Pattern: nick <new_Nick>");
-                        break;
-                    case "part":                                                                                //TODO: update
-                        if (cmd.length == 2)
-                            part(cmd[1]);
-                        else
-                            tell(simplifyNick(sender), "Pattern: part <channel> [reason]");
-                        break;
-                    case "ctcp":
-                        if ((cmd.length == 2) && (cmd[1].split("(\\s)|(\t)+?",2).length == 2)) {
-                            String[] ctcpArgs = cmd[1].split("(\\s)|(\t)+?", 2);
-                            ctcp(ctcpArgs[0], ctcpArgs[1]);
-                        }
-                        else
-                            tell(simplifyNick(sender), "Pattern: ctcp <object> <CTCP-command>");
-                        break;
-                    case "notice":
-                        if ((cmd.length == 2) && (cmd[1].split("(\\s)|(\t)+?",2).length == 2)) {
-                            String[] noticeArgs = cmd[1].split("(\\s)|(\t)+?", 2);
-                            notice(noticeArgs[0], noticeArgs[1]);
-                        }
-                        else
-                            tell(simplifyNick(sender), "Pattern: notice <nick> <message>");
-                        break;
-                    case "umode":
-                        if ((cmd.length == 2) && (cmd[1].split("(\\s)|(\t)+?",2).length == 2)) {
-                            String[] modeArgs = cmd[1].split("(\\s)|(\t)+?", 2);
-                            umode(modeArgs[0], modeArgs[1]);
-                        }
-                        else
-                            tell(simplifyNick(sender), "Pattern: umode <object> <[+|-]mode_single_char>");
-                        break;
-                    case "raw":
-                        if (cmd.length == 2)
-                            raw(cmd[1]);
-                        else
-                            tell(simplifyNick(sender), "Pattern: raw <any_text_to_server>");
-                        break;
-                    case "cmode":
-                        if ((cmd.length >= 2) && (cmd[1].split("(\\s)|(\t)+?",3).length >= 2)) {
-                            String[] args = cmd[1].split("(\\s)|(\t)+?", 3);
-                            if (args.length == 2)
-                                cmode(args[0], args[1], null);
-                            else if(args.length == 3)
-                                cmode(args[0], args[1], args[2]);
-                        }
-                        else
-                            tell(simplifyNick(sender), "Pattern: cmode <channel> [<mode>|<mode> <pattern_user>]");
-
-                        break;
-                    case "k":
-                    case "kick":
-                        if ((cmd.length >= 2) && (cmd[1].split("(\\s)|(\t)+?",3).length >= 2)) {
-                            String[] args = cmd[1].split("(\\s)|(\t)+?", 3);
-                            if (args.length == 2)
-                                kick(args[0], args[1], null);
-                            else if(args.length == 3)
-                                kick(args[0], args[1], args[2]);
-                        }
-                        else
-                            tell(simplifyNick(sender), "Pattern: [k|kick] <channel> <user> [reason]");
-                        break;
-                    case "b":
-                    case "ban":
-                        if ((cmd.length == 2) && (cmd[1].split("(\\s)|(\t)+?",2).length == 2)) {
-                            String[] banArgs = cmd[1].split("(\\s)|(\t)+?", 2);
-                            ban(banArgs[0], banArgs[1]);
-                        }
-                        else
-                            tell(simplifyNick(sender), "Pattern: [b|ban] <channel> <user>");
-                        break;
-                    case "-b":
-                    case "unban":
-                        if ((cmd.length == 2) && (cmd[1].split("(\\s)|(\t)+?",2).length == 2)) {
-                            String[] banArgs = cmd[1].split("(\\s)|(\t)+?", 2);
-                            unban(banArgs[0], banArgs[1]);
-                        }
-                        else
-                            tell(simplifyNick(sender), "Pattern: [-b|unban] <channel> <user>");
-                        break;
-                    case "kb":
-                    case "kickban":
-                        if ((cmd.length >= 2) && (cmd[1].split("(\\s)|(\t)+?",3).length >= 2)) {
-                            String[] args = cmd[1].split("(\\s)|(\t)+?", 3);
-                            if (args.length == 2)
-                                kickban(args[0], args[1], null);
-                            else if(args.length == 3)
-                                kickban(args[0], args[1], args[2]);
-                        }
-                        else
-                            tell(simplifyNick(sender), "Pattern: [kb|kickban] <channel> <user>");
-                        break;
-                    case "v":
-                    case "voice":
-                        if ((cmd.length == 2) && (cmd[1].split("(\\s)|(\t)+?",2).length == 2)) {
-                            String[] voiceArgs = cmd[1].split("(\\s)|(\t)+?", 2);
-                            voice(voiceArgs[0], voiceArgs[1]);
-                        }
-                        else
-                            tell(simplifyNick(sender), "Pattern: [v|voice] <channel> <user>");
-                        break;
-                    case "-v":
-                    case "unvoice":
-                        if ((cmd.length == 2) && (cmd[1].split("(\\s)|(\t)+?",2).length == 2)) {
-                            String[] voiceArgs = cmd[1].split("(\\s)|(\t)+?", 2);
-                            devoice(voiceArgs[0], voiceArgs[1]);
-                        }
-                        else
-                            tell(simplifyNick(sender), "Pattern: [-v|unvoice] <channel> <user>");
-                        break;
-                    case "h":
-                    case "hop":
-                        if ((cmd.length == 2) && (cmd[1].split("(\\s)|(\t)+?",2).length == 2)) {
-                            String[] hopArgs = cmd[1].split("(\\s)|(\t)+?", 2);
-                            hop(hopArgs[0], hopArgs[1]);
-                        }
-                        else
-                            tell(simplifyNick(sender), "Pattern: [h|hop] <channel> <user>");
-                        break;
-                    case "-h":
-                    case "unhop":
-                        if ((cmd.length == 2) && (cmd[1].split("(\\s)|(\t)+?",2).length == 2)) {
-                            String[] hopArgs = cmd[1].split("(\\s)|(\t)+?", 2);
-                            dehop(hopArgs[0], hopArgs[1]);
-                        }
-                        else
-                            tell(simplifyNick(sender), "Pattern: [-h|unhop] <channel> <user>");
-                        break;
-                    case "o":
-                    case "op":
-                        if ((cmd.length == 2) && (cmd[1].split("(\\s)|(\t)+?",2).length == 2)) {
-                            String[] operatorArgs = cmd[1].split("(\\s)|(\t)+?", 2);
-                            op(operatorArgs[0], operatorArgs[1]);
-                        }
-                        else
-                            tell(simplifyNick(sender), "Pattern: [o|operator] <channel> <user>");
-                        break;
-                    case "-o":
-                    case "unop":
-                        if ((cmd.length == 2) && (cmd[1].split("(\\s)|(\t)+?",2).length == 2)) {
-                            String[] args = cmd[1].split("(\\s)|(\t)+?", 2);
-                            deop(args[0], args[1]);
-                        }
-                        else
-                            tell(simplifyNick(sender), "Pattern: [-o|unoperator] <channel> <user>");
-                        break;
-                    case "topic":
-                        if ((cmd.length == 2) && (cmd[1].split("(\\s)|(\t)+?",2).length == 2)) {
-                            String[] args = cmd[1].split("(\\s)|(\t)+?", 2);
-                            topic(args[0], args[1]);
-                        }
-                        else
-                            tell(simplifyNick(sender), "Pattern: topic <channel> <topic>");
-                    break;
-                    case "invite":
-                        if ((cmd.length == 2) && (cmd[1].split("(\\s)|(\t)+?",2).length == 2)) {
-                            String[] args = cmd[1].split("(\\s)|(\t)+?", 2);
-                            invite(args[0], args[1]);
-                        }
-                        else
-                            tell(simplifyNick(sender), "Pattern: invite <user> <channel>");
-                        break;
-                    case "login":
-                        tell(simplifyNick(sender), "Already logged in.");
-                        break;
-                    default:
-                        tell(simplifyNick(sender), "Unknown command. Could be: join, part, quit, tell, nick, ctcp, notice, umode, cmode, raw, kick[k], ban[b], unban[-b], kickban[kb], voice[v], unvoice[-v], hop[h], unhop[-h], op[o], unop[-o], topic, invite and (login)");
-                }       // TODO: chanel limits set/remove
-            } else {
-                if (!message.isEmpty() && message.startsWith("login ")) {
-                    login(sender, message.replaceAll("^([\t\\s]+)?login([\t\\s]+)|([\t\\s]+$)", ""));
-                }
+        if (isNotAuthorized(sender)){
+            if (message.startsWith("login ")) {
+                login(sender, message.substring("login ".length()).trim());
             }
+            return;
         }
+
+        String[] cmd = message.split("(\\s)|(\t)+?", 2);
+        cmd[0] = cmd[0].toLowerCase();
+        if (cmd.length > 1)
+            cmd[1] = cmd[1].trim();
+
+        switch (cmd[0]){
+            case "tell":
+                if ((cmd.length == 2) && (cmd[1].split("(\\s)|(\t)+?",2).length == 2)) {
+                    String[] tellArgs = cmd[1].split("(\\s)|(\t)+?", 2);
+                    tell(tellArgs[0], tellArgs[1]);
+                }
+                else
+                    tell(simplifyNick(sender), "Pattern: tell <nick> <message>");
+                break;
+            case "join":
+                if (cmd.length == 2)
+                    join(cmd[1]);
+                else
+                    tell(simplifyNick(sender), "Pattern: join <channel>");
+                break;
+            case "quit":
+                if (cmd.length == 2)
+                    quit(cmd[1]);
+                else
+                    quit("");
+                break;
+            case "nick":
+                if (cmd.length == 2)
+                    nick(cmd[1]);
+                else
+                    tell(simplifyNick(sender), "Pattern: nick <new_Nick>");
+                break;
+            case "part":                                                                                //TODO: update
+                if (cmd.length == 2)
+                    part(cmd[1]);
+                else
+                    tell(simplifyNick(sender), "Pattern: part <channel> [reason]");
+                break;
+            case "ctcp":
+                if ((cmd.length == 2) && (cmd[1].split("(\\s)|(\t)+?",2).length == 2)) {
+                    String[] ctcpArgs = cmd[1].split("(\\s)|(\t)+?", 2);
+                    ctcp(ctcpArgs[0], ctcpArgs[1]);
+                }
+                else
+                    tell(simplifyNick(sender), "Pattern: ctcp <object> <CTCP-command>");
+                break;
+            case "notice":
+                if ((cmd.length == 2) && (cmd[1].split("(\\s)|(\t)+?",2).length == 2)) {
+                    String[] noticeArgs = cmd[1].split("(\\s)|(\t)+?", 2);
+                    notice(noticeArgs[0], noticeArgs[1]);
+                }
+                else
+                    tell(simplifyNick(sender), "Pattern: notice <nick> <message>");
+                break;
+            case "umode":
+                if ((cmd.length == 2) && (cmd[1].split("(\\s)|(\t)+?",2).length == 2)) {
+                    String[] modeArgs = cmd[1].split("(\\s)|(\t)+?", 2);
+                    umode(modeArgs[0], modeArgs[1]);
+                }
+                else
+                    tell(simplifyNick(sender), "Pattern: umode <object> <[+|-]mode_single_char>");
+                break;
+            case "raw":
+                if (cmd.length == 2)
+                    raw(cmd[1]);
+                else
+                    tell(simplifyNick(sender), "Pattern: raw <any_text_to_server>");
+                break;
+            case "cmode":
+                if ((cmd.length >= 2) && (cmd[1].split("(\\s)|(\t)+?",3).length >= 2)) {
+                    String[] args = cmd[1].split("(\\s)|(\t)+?", 3);
+                    if (args.length == 2)
+                        cmode(args[0], args[1], null);
+                    else if(args.length == 3)
+                        cmode(args[0], args[1], args[2]);
+                }
+                else
+                    tell(simplifyNick(sender), "Pattern: cmode <channel> [<mode>|<mode> <pattern_user>]");
+
+                break;
+            case "k":
+            case "kick":
+                if ((cmd.length >= 2) && (cmd[1].split("(\\s)|(\t)+?",3).length >= 2)) {
+                    String[] args = cmd[1].split("(\\s)|(\t)+?", 3);
+                    if (args.length == 2)
+                        kick(args[0], args[1], null);
+                    else if(args.length == 3)
+                        kick(args[0], args[1], args[2]);
+                }
+                else
+                    tell(simplifyNick(sender), "Pattern: [k|kick] <channel> <user> [reason]");
+                break;
+            case "b":
+            case "ban":
+                if ((cmd.length == 2) && (cmd[1].split("(\\s)|(\t)+?",2).length == 2)) {
+                    String[] banArgs = cmd[1].split("(\\s)|(\t)+?", 2);
+                    ban(banArgs[0], banArgs[1]);
+                }
+                else
+                    tell(simplifyNick(sender), "Pattern: [b|ban] <channel> <user>");
+                break;
+            case "-b":
+            case "unban":
+                if ((cmd.length == 2) && (cmd[1].split("(\\s)|(\t)+?",2).length == 2)) {
+                    String[] banArgs = cmd[1].split("(\\s)|(\t)+?", 2);
+                    unban(banArgs[0], banArgs[1]);
+                }
+                else
+                    tell(simplifyNick(sender), "Pattern: [-b|unban] <channel> <user>");
+                break;
+            case "kb":
+            case "kickban":
+                if ((cmd.length >= 2) && (cmd[1].split("(\\s)|(\t)+?",3).length >= 2)) {
+                    String[] args = cmd[1].split("(\\s)|(\t)+?", 3);
+                    if (args.length == 2)
+                        kickban(args[0], args[1], null);
+                    else if(args.length == 3)
+                        kickban(args[0], args[1], args[2]);
+                }
+                else
+                    tell(simplifyNick(sender), "Pattern: [kb|kickban] <channel> <user>");
+                break;
+            case "v":
+            case "voice":
+                if ((cmd.length == 2) && (cmd[1].split("(\\s)|(\t)+?",2).length == 2)) {
+                    String[] voiceArgs = cmd[1].split("(\\s)|(\t)+?", 2);
+                    voice(voiceArgs[0], voiceArgs[1]);
+                }
+                else
+                    tell(simplifyNick(sender), "Pattern: [v|voice] <channel> <user>");
+                break;
+            case "-v":
+            case "unvoice":
+                if ((cmd.length == 2) && (cmd[1].split("(\\s)|(\t)+?",2).length == 2)) {
+                    String[] voiceArgs = cmd[1].split("(\\s)|(\t)+?", 2);
+                    devoice(voiceArgs[0], voiceArgs[1]);
+                }
+                else
+                    tell(simplifyNick(sender), "Pattern: [-v|unvoice] <channel> <user>");
+                break;
+            case "h":
+            case "hop":
+                if ((cmd.length == 2) && (cmd[1].split("(\\s)|(\t)+?",2).length == 2)) {
+                    String[] hopArgs = cmd[1].split("(\\s)|(\t)+?", 2);
+                    hop(hopArgs[0], hopArgs[1]);
+                }
+                else
+                    tell(simplifyNick(sender), "Pattern: [h|hop] <channel> <user>");
+                break;
+            case "-h":
+            case "unhop":
+                if ((cmd.length == 2) && (cmd[1].split("(\\s)|(\t)+?",2).length == 2)) {
+                    String[] hopArgs = cmd[1].split("(\\s)|(\t)+?", 2);
+                    dehop(hopArgs[0], hopArgs[1]);
+                }
+                else
+                    tell(simplifyNick(sender), "Pattern: [-h|unhop] <channel> <user>");
+                break;
+            case "o":
+            case "op":
+                if ((cmd.length == 2) && (cmd[1].split("(\\s)|(\t)+?",2).length == 2)) {
+                    String[] operatorArgs = cmd[1].split("(\\s)|(\t)+?", 2);
+                    op(operatorArgs[0], operatorArgs[1]);
+                }
+                else
+                    tell(simplifyNick(sender), "Pattern: [o|operator] <channel> <user>");
+                break;
+            case "-o":
+            case "unop":
+                if ((cmd.length == 2) && (cmd[1].split("(\\s)|(\t)+?",2).length == 2)) {
+                    String[] args = cmd[1].split("(\\s)|(\t)+?", 2);
+                    deop(args[0], args[1]);
+                }
+                else
+                    tell(simplifyNick(sender), "Pattern: [-o|unoperator] <channel> <user>");
+                break;
+            case "topic":
+                if ((cmd.length == 2) && (cmd[1].split("(\\s)|(\t)+?",2).length == 2)) {
+                    String[] args = cmd[1].split("(\\s)|(\t)+?", 2);
+                    topic(args[0], args[1]);
+                }
+                else
+                    tell(simplifyNick(sender), "Pattern: topic <channel> <topic>");
+            break;
+            case "invite":
+                if ((cmd.length == 2) && (cmd[1].split("(\\s)|(\t)+?",2).length == 2)) {
+                    String[] args = cmd[1].split("(\\s)|(\t)+?", 2);
+                    invite(args[0], args[1]);
+                }
+                else
+                    tell(simplifyNick(sender), "Pattern: invite <user> <channel>");
+                break;
+            case "login":
+                tell(simplifyNick(sender), "Already logged in.");
+                break;
+            default:
+                tell(simplifyNick(sender), "Unknown command. Could be: join, part, quit, tell, nick, ctcp, notice, umode, cmode, raw, kick[k], ban[b], unban[-b], kickban[kb], voice[v], unvoice[-v], hop[h], unhop[-h], op[o], unop[-o], topic, invite and (login)");
+        }       // TODO: add options for setting channel limits (MODEs)
+    }
+    private boolean isNotAuthorized(String sender){
+        return ! administrators.contains(sender);
     }
 
     private void join(String channel){
@@ -233,14 +238,12 @@ public class PrivateMsgCommander {       // TODO: add black list: add users afte
         raw("PART "+channel);
     }
     private void quit(String message){
+        ReconnectControl.update(server, false);
         if (message.isEmpty()){
             raw("QUIT :"+ GlobalData.getAppVersion());
         }
         else
             raw("QUIT :"+message);
-        ReconnectControl.update(server, false);
-        //ReconnectControl.update(serverName, true);
-        //System.exit(0);                                                             // TODO: change to normal exit
     }
     private void tell(String channelUser, String message){
         message = message.trim();

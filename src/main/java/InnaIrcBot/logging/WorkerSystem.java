@@ -13,60 +13,68 @@ public class WorkerSystem{
     private final DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("HH:mm:ss");
     private Closeable thingToCloseOnDie;     // call .close() method of this classes when this (system log class) dies.
 
-    private final String server;
+    private boolean consistent;
 
-    private boolean consistent = false;
+    private String filePath;
 
     public WorkerSystem(String server, String appLogDir){
-        this.server = server;
-
-        if (appLogDir.isEmpty()) {
-            appLogDir = System.getProperty("java.io.tmpdir")+File.separator+"innaircbot"+File.separator;
-        }
-        else if (! appLogDir.endsWith(File.separator)) {
-            appLogDir += File.separator;
-        }
-
-        appLogDir += server;
-
-        File logFile = new File(appLogDir);
-
         try {
-            if (! logFile.getParentFile().exists()) {
-                if (! logFile.getParentFile().mkdirs()){
-                    System.out.println("BotSystemWorker (@"+server+")->constructor() failed:\n" +
-                            "\tUnable to create sub-directory(-ies) to store log file: " + appLogDir);
-                    return;
-                }
-            }
-            fileWriter = new FileWriter(logFile, true);
+            formatFilePath(server, appLogDir);
+
+            fileWriter = new FileWriter(createServerLogsFile(), true);
             consistent = true;
-        } catch (SecurityException e){
-            System.out.println("BotSystemWorker (@"+server+")->constructor() failed.\n" +
-                    "\tUnable to create sub-directory(-ies) to store logs file ("+appLogDir+"):\n\t"+e.getMessage());
-        } catch (IOException oie){
-            System.out.println("BotSystemWorker (@"+server+")->constructor() failed:\n" +
-                    "\tUnable to open file to store logs: " + appLogDir + " "+ oie.getMessage());
+        } catch (Exception e){
+            System.out.println("BotSystemWorker for "+server+" failed: " + e.getMessage());
         }
+    }
+
+    private void formatFilePath(String server, String dirLocation){
+        if (dirLocation.isEmpty())
+            dirLocation = "./";
+
+        if (dirLocation.endsWith(File.separator))
+            this.filePath = dirLocation+server+".log";
+        else
+            this.filePath = dirLocation;
+    }
+
+    private File createServerLogsFile() throws Exception{
+        final File file = new File(filePath);
+
+        if (file.exists()){
+            if (file.isFile())
+                return file;
+            else
+                throw new Exception("WorkerSystem: \""+filePath+"\" is directory while file expected.");
+        }
+
+        if (file.createNewFile())
+            return file;
+
+        throw new Exception("WorkerSystem: Can't create file: "+filePath);
     }
 
     private String genDate(){
-        return "["+ LocalTime.now().format(dateFormat)+"]  ";
+        return "["+ LocalTime.now().format(dateFormat)+"]";
     }
 
-    public void logAdd(String event, String initiatorArg, String messageArg) {
-        if (consistent) {
-            try {
-                fileWriter.write(genDate() + event + " " + initiatorArg + " " + messageArg + "\n");
-                fileWriter.flush();
-            } catch (Exception e) {     // ??? No ideas. Just in case. Consider removing.
-                System.out.println("BotSystemWorker (@" + server + ")->logAdd() failed\n\tUnable to write logs of because of exception:\n\t" + e.getMessage());
-                //this.close();
-                consistent = false;
-            }
-            return;
+    public void log(String initiatorArg, String messageArg) {
+        String message = String.format("%s %s %s\n", genDate(), initiatorArg, messageArg);
+
+        if (consistent)
+            logToFile(message);
+        else
+            System.out.println(message);
+    }
+    private void logToFile(String message){
+        try {
+            fileWriter.write(message);
+            fileWriter.flush();
+        } catch (Exception e) {
+            System.out.println("BotSystemWorker: unable to write application logs: " + e.getMessage());
+            consistent = false;
+            //this.close();
         }
-        System.out.println(genDate() + event + " " + initiatorArg + " " + messageArg + "\n");
     }
 
     public void registerInSystemWorker(Closeable thing){

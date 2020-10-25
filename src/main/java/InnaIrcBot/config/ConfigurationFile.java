@@ -23,6 +23,7 @@ public class ConfigurationFile {
     private boolean rejoinOnKick;
     private String botAdministratorPassword;
     private String applicationLogDir;
+    private int cooldownTime;
     private LogDriverConfiguration logDriverConfiguration;
     private List<String> channels;
     private HashMap<String, ConfigurationChannel> channelConfigs;
@@ -39,6 +40,8 @@ public class ConfigurationFile {
     public boolean getRejoinOnKick() { return rejoinOnKick; }
     public String getBotAdministratorPassword() { return botAdministratorPassword; }
     public String getApplicationLogDir() { return applicationLogDir; }
+    public int getCooldownTime() { return cooldownTime; }
+
     public LogDriverConfiguration getLogDriverConfiguration(){ return logDriverConfiguration; }
     public List<String> getChannels() { return channels; }
     public ConfigurationChannel getChannelConfig(String channel) { return channelConfigs.get(channel); }
@@ -76,6 +79,7 @@ public class ConfigurationFile {
         this.rejoinOnKick = mainSection.get("auto rejoin", boolean.class);
         this.botAdministratorPassword = mainSection.getOrDefault("bot administrator password", "");
         this.applicationLogDir = mainSection.getOrDefault("application logs", "");
+        this.cooldownTime = mainSection.get("cooldown (sec)", int.class);
     }
 
     private void parseChannels(Wini ini){

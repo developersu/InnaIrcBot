@@ -1,23 +1,35 @@
 package InnaIrcBot;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.Map;
 
 public class ReconnectControl {
-    private static final HashMap<String, Boolean> serversList = new HashMap<>();
-    public static synchronized void register(String serverName){
-        serversList.put(serverName, true);
+    private static final Map<String, Boolean> serversList = Collections.synchronizedMap(new HashMap<>());
+    private static final Map<String, Integer> serversReconnects = Collections.synchronizedMap(new HashMap<>());
+
+    public static void register(String server){
+        serversList.putIfAbsent(server, true);
+        serversReconnects.putIfAbsent(server, 0);
     }
-    public static synchronized void update(String serverName, boolean needReconnect){
-        serversList.replace(serverName, needReconnect);
+    public static void update(String server, boolean needReconnect){
+        serversList.replace(server, needReconnect);
     }
 
-    public static synchronized void notify(String serverName) {
-        if (serversList.get(serverName) == null || ! serversList.get(serverName)){
-            serversList.remove(serverName);
+    public static synchronized void notify(String server){
+        if (! serversList.getOrDefault(server, false))
+            return;
+
+        int count = serversReconnects.get(server);
+
+        if (count > 5) {
+            serversList.replace(server, false);
             return;
         }
+        count++;
+        serversReconnects.put(server, count);
 
-        System.out.println("DEBUG: Thread "+serverName+" removed from observable list after unexpected finish.\n\t");
-        ConnectionsBuilder.getConnections().startNewConnection(serverName);
+        System.out.println("Main thread \"" + server + "\" removed from observable list after unexpected finish.\n");
+        ConnectionsBuilder.getConnections().startNewConnection(server);
     }
 }

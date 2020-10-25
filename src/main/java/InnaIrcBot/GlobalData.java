@@ -8,5 +8,6 @@ public class GlobalData {
                 System.getProperty("os.version"),
                 System.getProperty("os.arch"));
     }
+    public static final String applicationHomePage = "https://github.com/developersu/InnaIrcBot";
     public static final int CHANNEL_QUEUE_CAPACITY = 500;
 }

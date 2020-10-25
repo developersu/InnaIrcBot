@@ -5,7 +5,7 @@ import InnaIrcBot.logging.SupportedLogDrivers;
 public class LogDriverConfiguration {
     private String name;
 
-    private final String path;
+    private String path;
 
     private final String mongoURI;
     private final String mongoTable;
@@ -48,12 +48,8 @@ public class LogDriverConfiguration {
     }
 
     private void validatePath(){
-        try {
-            checkFieldNotEmpty(path);
-        }
-        catch (Exception e){
-            name = SupportedLogDrivers.zero;
-        }
+        if (path == null)
+            path = ".";
     }
 
     private void validateMongo(){
