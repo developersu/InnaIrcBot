@@ -9,25 +9,30 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                sh 'mvn package'
+                sh 'mvn -B -DskipTests clean package'
+            }
+            post {
+                success {
+                    archiveArtifacts artifacts: 'target/*.jar, target/*.exe'
+                }
             }
         }
         stage('Test') {
             steps {
                 sh 'mvn test'
             }
+            post {
+                always {
+                    junit 'target/surefire-reports/*.xml'
+                }
+            }
         }
         stage('Deploy') {
             steps {
-            // TODO: consider switch to docker registry
                 sh 'cp  ./target/InnaIrcBot-*-jar-with-dependencies.jar /rel/InnaIrcBot.jar'
+                // TODO: consider switch to docker registry
                 // sh 'docker restart innaircbot'
             }
-        }
-    }
-    post {
-        always {
-            archiveArtifacts artifacts: 'target/*-jar-with-dependencies.jar', onlyIfSuccessful: true
         }
     }
 }
