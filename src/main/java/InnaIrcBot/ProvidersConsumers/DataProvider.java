@@ -2,7 +2,6 @@ package InnaIrcBot.ProvidersConsumers;
 
 import InnaIrcBot.config.ConfigurationFile;
 import InnaIrcBot.IrcChannel;
-import InnaIrcBot.logging.LogDriver;
 import InnaIrcBot.ReconnectControl;
 
 import java.io.*;
@@ -37,7 +36,6 @@ public class DataProvider implements Runnable {
             connectSocket();
 
             ReconnectControl.register(server);
-            LogDriver.setLogDriver(server);
 
             ircChannels = Collections.synchronizedMap(new HashMap<>());
             systemConsumerChannel = new IrcChannel("");

@@ -5,7 +5,6 @@ import InnaIrcBot.Commanders.PrivateMsgCommander;
 import InnaIrcBot.ReconnectControl;
 import InnaIrcBot.config.ConfigurationFile;
 import InnaIrcBot.IrcChannel;
-import InnaIrcBot.logging.LogDriver;
 import InnaIrcBot.logging.WorkerSystem;
 
 import java.time.LocalTime;
@@ -38,7 +37,8 @@ public class SystemConsumer implements Runnable{
         this.systemQueue = channels.get("").getChannelQueue();
         this.nick = userNick;
         this.server = configurationFile.getServerName();
-        this.writerWorker = LogDriver.getSystemWorker(server);
+        WorkerSystem.setLogDriver(server);
+        this.writerWorker = WorkerSystem.getSystemWorker(server);
         this.channels = channels;
         this.channelThreads = new ArrayList<>();
         this.configurationFile = configurationFile;

@@ -79,7 +79,7 @@ public class WorkerFiles implements Worker {
      * argument[1] should be always 'subject'
      * */
     @Override
-    public boolean logAdd(String event, String initiator, String message) {
+    public void logAdd(String event, String initiator, String message) throws Exception{
         switch (event){
             case "PRIVMSG":
                 PRIVMSG(initiator, message);
@@ -109,7 +109,10 @@ public class WorkerFiles implements Worker {
                 prettyPrint("["+LocalTime.now().format(dateFormat)+"] "+event+" "+initiator+" "+message+"\n");   // TODO: QA @ big data
                 break;
         }
-        return consistent;
+        if (consistent)
+            return;
+
+        throw new Exception();
     }
     private void prettyPrint(String string){
         try {

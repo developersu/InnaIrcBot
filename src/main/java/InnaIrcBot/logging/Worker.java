@@ -1,13 +1,9 @@
 package InnaIrcBot.logging;
 
 public interface Worker {
-    boolean consistent = false;
-
     boolean isConsistent();
 
-    boolean logAdd(String event,
-                String initiator,
-                String message);
+    void logAdd(String event, String initiator, String message) throws Exception;
 
     void close();
 }

@@ -3,10 +3,8 @@ package InnaIrcBot.ProvidersConsumers;
 import InnaIrcBot.Commanders.ChanelCommander;
 import InnaIrcBot.GlobalData;
 import InnaIrcBot.IrcChannel;
-import InnaIrcBot.logging.LogDriver;
-import InnaIrcBot.logging.Worker;
+import InnaIrcBot.logging.LogManager;
 import InnaIrcBot.config.ConfigurationManager;
-import InnaIrcBot.logging.WorkerZero;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -22,7 +20,7 @@ public class ChanConsumer implements Runnable {
     private final String serverName;
     private final String channelName;
     private final ArrayList<String> users;
-    private Worker logWorker;
+    private final LogManager log;
     private String nick;
     private final boolean autoRejoin;
     private final Map<String, IrcChannel> channels;
@@ -42,7 +40,7 @@ public class ChanConsumer implements Runnable {
         this.chanConsumerQueue = thisIrcChannel.getChannelQueue();
         this.serverName = serverName;
         this.channelName = thisIrcChannel.toString();
-        this.logWorker = LogDriver.getWorker(serverName, channelName);
+        this.log = new LogManager(serverName, channelName);
         this.users = new ArrayList<>();
         this.nick = ownNick;
         this.autoRejoin = ConfigurationManager.getConfiguration(serverName).getRejoinOnKick();
@@ -56,30 +54,35 @@ public class ChanConsumer implements Runnable {
         this.channelCommanderThread = new Thread(commander);
         this.channelCommanderThread.start();
     }
-
+    @Override
     public void run(){
-        System.out.println("["+LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))+"] ChanConsumer thread "+serverName+":"+this.channelName +" started");                                                   // TODO:REMOVE DEBUG
+        System.out.println("["+LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))
+                +"] ChanConsumer thread "+serverName+":"+this.channelName +" started"); // TODO:REMOVE DEBUG
+        runRoutine();
+        close();
+        System.out.println("["+LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))
+                +"] THREAD "+serverName+":"+this.channelName +" ended");                 // TODO:REMOVE DEBUG
+    }
+
+    private void runRoutine(){
         try {
             while (! endThread) {
-                String data = chanConsumerQueue.take();
-                String[] dataStrings = data.split(" :?",3);
-
-                if (trackUsers(dataStrings[1], dataStrings[0], dataStrings[2]))
-                    continue;
-                // Send to channel commander thread
-                // TODO: Check and add consistency validation
-                queue.add(data);
-
-                if (! logWorker.logAdd(dataStrings[1], dataStrings[0], dataStrings[2])){      // Write logs checks if LogDriver consistent.
-                    this.fixLogDriverIssues(dataStrings[1], dataStrings[0], dataStrings[2]);
-                }
+                parse();
             }
         } catch (InterruptedException e){
-                System.out.println("ChanConsumer (@"+serverName+"/"+channelName+")->run(): Interrupted\n\t"+e.getMessage());           // TODO: reconnect?
+            System.out.println("ChanConsumer "+serverName+"/"+channelName+"Interrupted "+e.getMessage());
         }
+    }
 
-        close();
-        System.out.println("["+LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))+"] THREAD "+serverName+":"+this.channelName +" ended"); // TODO:REMOVE DEBUG
+    private void parse() throws InterruptedException{
+        String data = chanConsumerQueue.take();
+        String[] dataStrings = data.split(" :?",3);
+
+        if (trackUsers(dataStrings[1], dataStrings[0], dataStrings[2]))
+            return;
+
+        queue.add(data); // Send to channel commander thread TODO: Check and add consistency validation
+        log.add(dataStrings[1], dataStrings[0], dataStrings[2]);
     }
 
     private boolean trackUsers(String event, String initiator, String subject){
@@ -101,12 +104,11 @@ public class ChanConsumer implements Runnable {
                 return true;       // user quit, but he/she is not in this channel
             case "KICK":
                 String kickedUser = subject.replaceAll("(^.+?\\s)|(\\s.+$)", "");
-                if (nick.equals(kickedUser) && autoRejoin) {     // TODO: FIX
+                deleteUser(kickedUser);
+                if (nick.equals(kickedUser)) {     // TODO: FIX
                     hasBeenKicked = true;
-                    deleteUser(kickedUser);
                     return true;
                 }
-                deleteUser(kickedUser);
                 return false;
             case "NICK":
                 if (users.contains(initiator)) {
@@ -146,7 +148,7 @@ public class ChanConsumer implements Runnable {
     private void close(){
         try{
             channels.remove(channelName);
-            logWorker.close();
+            log.close();
             channelCommanderThread.interrupt(); //kill sub-thread
             channelCommanderThread.join();
             handleAutoRejoin();
@@ -159,15 +161,6 @@ public class ChanConsumer implements Runnable {
     private void handleAutoRejoin(){
         if (hasBeenKicked && autoRejoin) {
             StreamProvider.writeToStream(serverName, "JOIN " + channelName);
-        }
-    }
-
-    private void fixLogDriverIssues(String a, String b, String c){
-        System.out.println("ChanConsumer (@"+serverName+"/"+channelName+")->fixLogDriverIssues(): Some issues detected. Trying to fix...");
-        logWorker = LogDriver.getWorker(serverName, channelName);       // Reset logDriver and try using the same one
-        if (! logWorker.logAdd(a, b, c)){                               // Write to it what was not written (most likely) and if it's still not consistent:
-            logWorker = new WorkerZero();
-            System.out.println("ChanConsumer (@"+serverName+"/"+channelName+")->fixLogDriverIssues(): failed to use defined LogDriver. Using ZeroWorker instead.");
         }
     }
 }

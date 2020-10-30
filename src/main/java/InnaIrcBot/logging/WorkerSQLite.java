@@ -150,7 +150,7 @@ public class WorkerSQLite implements Worker {
     public boolean isConsistent() {return consistent; }
 
     @Override
-    public boolean logAdd(String event, String initiator, String message) {
+    public void logAdd(String event, String initiator, String message) throws Exception {
         try {
             preparedStatement.setLong(1, getDate());
             preparedStatement.setString(2, event);
@@ -184,10 +184,9 @@ public class WorkerSQLite implements Worker {
             preparedStatement.executeUpdate();
         }
         catch (Exception e) {
-            System.out.println("BotSQLiteWorker (@" + server + ")->logAdd() failed:\n\t" + e.getMessage());
             this.close();
+            throw new Exception("BotSQLiteWorker (@" + server + ")->logAdd() failed:\n\t" + e.getMessage());
         }
-        return consistent;
     }
 
     @Override

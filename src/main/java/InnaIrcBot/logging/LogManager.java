@@ -4,24 +4,32 @@ import InnaIrcBot.config.ConfigurationFile;
 import InnaIrcBot.config.ConfigurationManager;
 import InnaIrcBot.config.LogDriverConfiguration;
 
-import java.util.HashMap;
+public class LogManager {
+    private final String server;
+    private final String channel;
+    private Worker worker;
 
-public class LogDriver {
-    private final static HashMap<String, WorkerSystem> systemLogWorkerMap = new HashMap<>();
-
-    // TODO: add proxy multiple drivers support
-    public static synchronized void setLogDriver(String server){
-        String applicationLogDir;
-        try {
-            applicationLogDir = ConfigurationManager.getConfiguration(server).getApplicationLogDir();
-        }
-        catch (Exception e){
-            applicationLogDir = "";
-        }
-        systemLogWorkerMap.put(server, new WorkerSystem(server, applicationLogDir));
+    public LogManager(String server, String channel){
+        this.server = server;
+        this.channel = channel;
+        this.worker = getWorker(server, channel);
     }
 
-    public static synchronized Worker getWorker(String server, String channel){
+    public void add(String event, String initiator, String message) {
+        try {
+            worker.logAdd(event, initiator, message);
+        }
+        catch (Exception e){
+            System.out.println("Unable to use LogDriver for "+server+"/"+channel+" "+e.getMessage());
+            worker = new WorkerZero();
+        }
+    }
+
+    public void close() {
+        worker.close();
+    }
+
+    private Worker getWorker(String server, String channel) {
         try {
             ConfigurationFile serverConfiguration = ConfigurationManager.getConfiguration(server);
             LogDriverConfiguration logDriverConfiguration = serverConfiguration.getLogDriverConfiguration();
@@ -44,9 +52,5 @@ public class LogDriver {
                     + "\n\tUsing ZeroWorker.");
             return new WorkerZero();
         }
-    }
-
-    public static synchronized WorkerSystem getSystemWorker(String serverName){
-        return systemLogWorkerMap.get(serverName);
     }
 }

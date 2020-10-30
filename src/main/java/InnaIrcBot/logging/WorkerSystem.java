@@ -1,13 +1,36 @@
 package InnaIrcBot.logging;
 
+import InnaIrcBot.config.ConfigurationFile;
+import InnaIrcBot.config.ConfigurationManager;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 
 public class WorkerSystem{
+    private final static HashMap<String, WorkerSystem> systemLogWorkerMap = new HashMap<>();
+
+    // TODO: add proxy multiple drivers support
+    public static synchronized void setLogDriver(String server){
+        String applicationLogDir;
+        try {
+            ConfigurationFile configuration = ConfigurationManager.getConfiguration(server);
+            applicationLogDir = configuration.getApplicationLogDir();
+        }
+        catch (Exception e){
+            applicationLogDir = "";
+        }
+        systemLogWorkerMap.put(server, new WorkerSystem(server, applicationLogDir));
+    }
+
+    public static synchronized WorkerSystem getSystemWorker(String serverName){
+        return systemLogWorkerMap.get(serverName);
+    }
+
 
     private FileWriter fileWriter;
     private final DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("HH:mm:ss");

@@ -76,9 +76,12 @@ class LogDriverTest {
     }
 
     private void createWorkers(String server){
+        /*
         fw1 = LogDriver.getWorker(server,"system");
         fw2 = LogDriver.getWorker(server,"#main");
         fw3 = LogDriver.getWorker(server,"#lpr");
+
+         */
     }
     void checkConsistency(){
         assertTrue(fw1.isConsistent());
@@ -87,6 +90,7 @@ class LogDriverTest {
     }
 
     void validateDriver(){
+        /*
         assertTrue(fw1.logAdd("JOIN", "de_su!loper@desktop.lan", "message1"));
         assertTrue(fw1.logAdd("PRIVMSG", "de_su!loper@desktop.lan", ": some text here"));
         assertTrue(fw1.logAdd("PRIVMSG", "de_su!loper@desktop.lan", ": more random tests"));
@@ -107,6 +111,8 @@ class LogDriverTest {
         assertTrue(fw3.logAdd("NICK", "de_su!loper@desktop.lan", "developer_su"));
         assertTrue(fw3.logAdd("MODE", "de_su!loper@desktop.lan", "+b username"));
         assertTrue(fw3.logAdd("PART", "de_su!loper@desktop.lan", "#chan3"));
+
+         */
     }
 
     private void initializeFilesLogDriver(){
@@ -116,7 +122,7 @@ class LogDriverTest {
                 null,
                 null,
                 null);
-        LogDriver.setLogDriver(serverNameFiles);
+        WorkerSystem.setLogDriver(serverNameFiles);
     }
 
     private void initializeSQLiteLogDriver(){
@@ -127,7 +133,7 @@ class LogDriverTest {
                 null,
                 null);
 
-        LogDriver.setLogDriver(serverNameSQLite);
+        WorkerSystem.setLogDriver(serverNameSQLite);
     }
 
     private void initializeMongoDBLogDriver(){
@@ -137,7 +143,7 @@ class LogDriverTest {
                 "irc",
                 "loper",
                 "password");
-        LogDriver.setLogDriver("irc.tomsk.net");
+        WorkerSystem.setLogDriver("irc.tomsk.net");
     }
 
     private void close(){

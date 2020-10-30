@@ -122,11 +122,11 @@ public class WorkerMongoDB implements Worker {               //TODO consider ski
             }
         };
 
-        LogDriver.getSystemWorker(server).registerInSystemWorker(thing);
+        WorkerSystem.getSystemWorker(server).registerInSystemWorker(thing);
     }
 
     @Override
-    public boolean logAdd(String event, String initiator, String message) {
+    public void logAdd(String event, String initiator, String message) throws Exception{
         Document document = new Document("date", getDate())
                                 .append("event", event)
                                 .append("initiator", initiator);
@@ -156,7 +156,10 @@ public class WorkerMongoDB implements Worker {               //TODO consider ski
 
         insert(document);
 
-        return consistent;
+        if (consistent)
+            return;
+
+        throw new Exception();
     }
     private void insert(Document document){
         try {

@@ -1,34 +1,36 @@
-package InnaIrcBot.Commanders;
+package InnaIrcBot.Commanders.flood;
 
 import InnaIrcBot.ProvidersConsumers.StreamProvider;
 
 import java.time.LocalDateTime;
 import java.util.*;
 
-public class JoinFloodHandler {
+public class JoinFloodHandler implements EventHandler {
     private final int joinMaxNumber;                 // How many events should happens before we start validation
     private final int timeFrameInSeconds;             // For which period critical amount of events should happens
     private final String server;
     private final String channel;
     protected final HashMap<String, LinkedList<LocalDateTime>> users;
 
-    public JoinFloodHandler(int joinMaxNumber, int timeFrameInSeconds, String serverName, String channelName){
+    public JoinFloodHandler(String server, String channel, int joinMaxNumber, int timeFrameInSeconds){
+        this.server = server;
+        this.channel = channel;
         this.joinMaxNumber = joinMaxNumber;
         this.timeFrameInSeconds = timeFrameInSeconds;
-        this.server = serverName;
-        this.channel = channelName;
         this.users = new HashMap<>();
     }
+    @Override
+    public void track(String nick){
+        nick = simplifyNick(nick);
 
-    public void track(String userNickname){
-        if (isNewcomer(userNickname)) {
-            registerNewUser(userNickname);
+        if (isNewcomer(nick)) {
+            registerNewUser(nick);
             return;
         }
 
-        if(isJoinFlooder(userNickname)){
-            kickBanUser(userNickname);
-            users.remove(userNickname);
+        if(isJoinFlooder(nick)){
+            kickBanUser(nick);
+            users.remove(nick);
         }
     }
 
@@ -67,4 +69,6 @@ public class JoinFloodHandler {
                 "PRIVMSG  "+ channel +" :"+user+": join flood ("+ joinMaxNumber +" connections in "+timeFrameInSeconds+" seconds).\n"+
                 "MODE "+ channel +" +b "+user+"!*@*"); // TODO: consider other ban methods
     }
+
+    private String simplifyNick(String nick){ return nick.replaceAll("!.*$",""); }
 }

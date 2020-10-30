@@ -5,7 +5,7 @@ public class WorkerZero implements Worker{
     public boolean isConsistent() {return true;}
 
     @Override
-    public boolean logAdd(String event, String initiator, String message) { return true; }
+    public void logAdd(String event, String initiator, String message) {}
 
     @Override
     public void close() {}

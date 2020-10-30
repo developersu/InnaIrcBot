@@ -17,7 +17,7 @@ class CTCPRequest {
         this.CTCPtype = CTCPType;
     }
 
-    String getRequesterChanelOrUser(String userResponds){      // return channel name
+    String getRequester(String userResponds){      // return channel name
         if (userResponding.equals(userResponds))
             return requesterChanelOrUser;
         return null;

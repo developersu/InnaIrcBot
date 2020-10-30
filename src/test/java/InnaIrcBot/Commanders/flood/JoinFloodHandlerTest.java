@@ -1,4 +1,4 @@
-package InnaIrcBot.Commanders;
+package InnaIrcBot.Commanders.flood;
 
 import InnaIrcBot.ProvidersConsumers.StreamProvider;
 import org.junit.jupiter.api.DisplayName;
@@ -14,7 +14,7 @@ class JoinFloodHandlerTest {
     private static final String serverName = "testServer";
     private static final String channelName = "testChannel";
 
-    private final JoinFloodHandler joinFloodHandler = new JoinFloodHandler(3, 5, serverName, channelName);
+    private final JoinFloodHandler joinFloodHandler = new JoinFloodHandler(serverName, channelName, 3, 5);
     private static final String userNickName = "John";
     private Thread socketTestThread;
 

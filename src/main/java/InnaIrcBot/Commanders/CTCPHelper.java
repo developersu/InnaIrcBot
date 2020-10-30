@@ -15,8 +15,8 @@ public class CTCPHelper {
     private final HashMap<String, List<CTCPRequest>> waitersQueue = new HashMap<>();
     private CTCPHelper(){}
 
-    void registerRequest(String server, String requesterChanelOrUser, String ctcpType, String target, String notFoundMessage){
-        if (!waitersQueue.containsKey(server)){                // TODO: meeeeeeeehh.. looks bad
+    public void registerRequest(String server, String requesterChanelOrUser, String ctcpType, String target, String notFoundMessage){
+        if (! waitersQueue.containsKey(server)){                // TODO: meeeeeeeehh.. looks bad
             waitersQueue.put(server, new ArrayList<>());
         }
 
@@ -48,7 +48,7 @@ public class CTCPHelper {
         while (iterator.hasNext()){
             CTCPRequest current = iterator.next();
             if (current.isValid(currentTime)){
-                String channelOrUser = current.getRequesterChanelOrUser(whoReplied);
+                String channelOrUser = current.getRequester(whoReplied);
 
                 if (channelOrUser == null || ! current.getType().equals(whatReplied.replaceAll("\\s.*$", "")))
                     continue;
@@ -76,7 +76,7 @@ public class CTCPHelper {
             CTCPRequest current = iterator.next();
             if (! current.isValid(currentTime))
                 iterator.remove();
-            String channelOrUser = current.getRequesterChanelOrUser(whoNotFound);
+            String channelOrUser = current.getRequester(whoNotFound);
 
             if (channelOrUser == null)
                 continue;
