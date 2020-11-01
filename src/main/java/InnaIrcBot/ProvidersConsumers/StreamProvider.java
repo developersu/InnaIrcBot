@@ -12,11 +12,12 @@ public class StreamProvider {
 
     public static synchronized void writeToStream(String server, String message){
         try {
+            if (message.matches("(^.+?\\s)INNA")) {
+                SystemConsumer.getSystemConsumer(server).add("INNA "+message);
+                return;
+            }
             srvStreamMap.get(server).write(message+"\n");
             srvStreamMap.get(server).flush();
-            if (message.startsWith("PRIVMSG ")) {
-                SystemConsumer.getSystemConsumer(server).add("INNA "+message);
-            }
         } catch (IOException e){
             System.out.println("Internal issue: StreamProvider->writeToStream() caused I/O exception:\n\t"+e.getMessage());
         }

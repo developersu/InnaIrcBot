@@ -39,7 +39,6 @@ public class CTCPHelper {
 
     public void handleCtcpReply(String serverReplied, String whoReplied, String whatReplied){
         LocalDateTime currentTime = LocalDateTime.now();
-
         if (! waitersQueue.containsKey(serverReplied))
             return;
 

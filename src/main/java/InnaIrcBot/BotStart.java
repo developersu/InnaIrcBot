@@ -55,7 +55,7 @@ public class BotStart {
         final Option configurationOption = Option.builder("c")
                 .longOpt("configuration")
                 .desc("Start with configuration")
-                .hasArg(true)
+                .hasArgs()
                 .build();
 
         final Option generateOption = Option.builder("g")
