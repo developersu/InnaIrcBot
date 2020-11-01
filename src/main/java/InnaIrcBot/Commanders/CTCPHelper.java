@@ -85,7 +85,7 @@ public class CTCPHelper {
             if (notFoundMessage == null)
                 continue;
 
-            System.out.println(serverReplied + " PRIVMSG " + channelOrUser + " :" + notFoundMessage + whoNotFound);
+            //System.out.println(serverReplied + " PRIVMSG " + channelOrUser + " :" + notFoundMessage + whoNotFound);
             StreamProvider.writeToStream(serverReplied, "PRIVMSG " + channelOrUser + " :" + notFoundMessage + whoNotFound);
         }
     }

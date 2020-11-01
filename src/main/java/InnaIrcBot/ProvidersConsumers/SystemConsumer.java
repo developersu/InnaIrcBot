@@ -123,7 +123,7 @@ public class SystemConsumer implements Runnable{
                         + " [nickname already in use and will be changed]");
                 break;
             case "353":
-                writerWorker.log("catch/handled:", eventNum+" [RPL_NAMREPLY]");
+                writerWorker.log("handled:", eventNum+" [RPL_NAMREPLY]");
                 String channelName = message.substring(nick.length()+3).replaceAll("\\s.*$", "");
 
                 IrcChannel ircChannel = channels.get(channelName);
@@ -151,7 +151,7 @@ public class SystemConsumer implements Runnable{
                     Thread newIrcChannelThread = new Thread(consumer);
                     newIrcChannelThread.start();
                     channelThreads.add(newIrcChannelThread);
-                    //proxyAList.get(message).add(eventNum+" "+sender+" "+message);       // Add message to array linked
+                    newIrcChannel.getChannelQueue().add(sender+" "+eventNum+" "+message);
                     writerWorker.log("joined channel ", message);
                 }
                 break;
