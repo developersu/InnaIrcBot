@@ -10,4 +10,5 @@ public class GlobalData {
     }
     public static final String applicationHomePage = "https://github.com/developersu/InnaIrcBot";
     public static final int CHANNEL_QUEUE_CAPACITY = 500;
+    public static final int LINKS_COOLDOWN_FRAME = 3;
 }

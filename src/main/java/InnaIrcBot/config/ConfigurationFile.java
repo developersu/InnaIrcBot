@@ -2,6 +2,7 @@ package InnaIrcBot.config;
 
 import org.ini4j.Config;
 import org.ini4j.Ini;
+import org.ini4j.Profile;
 import org.ini4j.Wini;
 
 import java.io.File;
@@ -115,13 +116,18 @@ public class ConfigurationFile {
 
         Ini.Section joinCloneControlSection = channelSection.getChild("rules");
 
-        boolean joinCloneControl = joinCloneControlSection.get("enable", boolean.class);;
+        boolean joinCloneControl = joinCloneControlSection.get("enable", boolean.class);
+
         int joinCloneControlTimeFrame = -1;
         String joinCloneControlPattern = "";
         if (joinCloneControl){
             joinCloneControlTimeFrame = joinCloneControlSection.get("time frame", int.class);
             joinCloneControlPattern = joinCloneControlSection.getOrDefault("pattern", "");
         }
+
+        Profile.Section parseLinksTitlesSection = channelSection.getChild("ParseLinksTitles");
+
+        boolean parseLinksTitles = parseLinksTitlesSection.get("enable", boolean.class);
 
         channelConfigs.put(channelName, new ConfigurationChannel(
                 joinFloodControl,
@@ -130,6 +136,7 @@ public class ConfigurationFile {
                 joinCloneControl,
                 joinCloneControlTimeFrame,
                 joinCloneControlPattern,
+                parseLinksTitles,
                 channelRules));
     }
 

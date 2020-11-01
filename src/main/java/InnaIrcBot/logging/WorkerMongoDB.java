@@ -147,6 +147,8 @@ public class WorkerMongoDB implements Worker {               //TODO consider ski
             case "PRIVMSG":
                 document.append("message1", message.replaceAll("^:", ""));
                 break;
+            case "353":
+                break;
             case "NICK":
             case "JOIN":
             default:

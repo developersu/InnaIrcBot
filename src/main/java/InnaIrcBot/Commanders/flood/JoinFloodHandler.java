@@ -1,5 +1,6 @@
 package InnaIrcBot.Commanders.flood;
 
+import InnaIrcBot.Commanders.EventHandler;
 import InnaIrcBot.ProvidersConsumers.StreamProvider;
 
 import java.time.LocalDateTime;

@@ -1,6 +1,5 @@
 package InnaIrcBot.Commanders;
 
-import InnaIrcBot.Commanders.flood.EventHandler;
 import InnaIrcBot.Commanders.flood.JoinCloneHandler;
 import InnaIrcBot.Commanders.flood.JoinFloodHandler;
 import InnaIrcBot.Commanders.talk.TalkGenericHandler;
@@ -8,6 +7,8 @@ import InnaIrcBot.Commanders.talk.TalkHandler;
 import InnaIrcBot.Commanders.talk.TalkZeroHandler;
 import InnaIrcBot.config.ConfigurationChannel;
 import InnaIrcBot.config.ConfigurationManager;
+import InnaIrcBot.linkstitles.LinksTitleManager;
+import InnaIrcBot.linkstitles.LinksTitleRequest;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -22,6 +23,8 @@ public class ChanelCommander implements Runnable {
     //TODO: add timers, flood
     private TalkHandler talkHandler;
     private final List<EventHandler> eventHandlers;
+
+    private BlockingQueue<LinksTitleRequest> urlParser;
 
     public ChanelCommander(BlockingQueue<String> commanderQueue, String server, String channel) throws Exception{
         this.commanderQueue = commanderQueue;
@@ -60,6 +63,9 @@ public class ChanelCommander implements Runnable {
                     configChannel.getJoinCloneControlTimeframe());
             eventHandlers.add(jch);
         }
+
+        if (configChannel.isParseLinksTitles())
+            urlParser = LinksTitleManager.getHandlerQueue();
     }
 
     @Override
@@ -97,6 +103,7 @@ public class ChanelCommander implements Runnable {
                 talkHandler.joinCame(dataStrings[0]);
                 break;
             case "PRIVMSG":
+                parseLinks(dataStrings[2]);
                 talkHandler.privmsgCame(dataStrings[0], dataStrings[2]);
                 break;
                 /*  case "PART":
@@ -106,6 +113,12 @@ public class ChanelCommander implements Runnable {
                     case "KICK":   */
             default:
                 break;
+        }
+    }
+
+    private void parseLinks(String message){
+        if (urlParser != null) {
+            urlParser.add(new LinksTitleRequest(server, channel, message));
         }
     }
 }

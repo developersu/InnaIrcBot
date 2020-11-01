@@ -174,6 +174,8 @@ public class WorkerSQLite implements Worker {
                     preparedStatement.setString(4, message.replaceAll("^:", ""));
                     preparedStatement.setString(5,null);
                     break;
+                case "353":
+                    break;
                 case "NICK":
                 case "JOIN":
                 default:

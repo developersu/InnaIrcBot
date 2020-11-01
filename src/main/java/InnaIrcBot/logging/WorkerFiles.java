@@ -66,7 +66,7 @@ public class WorkerFiles implements Worker {
     private void createFileWriter() throws IOException{
         dateOnFile = LocalDate.now();
         File newFile = new File(filePath+channel+"_"+ dateOnFile +".txt");
-        fileWriter = new FileWriter(newFile);
+        fileWriter = new FileWriter(newFile, true);
     }
 
     @Override
@@ -104,6 +104,8 @@ public class WorkerFiles implements Worker {
                 break;
             case "TOPIC":
                 TOPIC(initiator, message);
+                break;
+            case "353":
                 break;
             default:
                 prettyPrint("["+LocalTime.now().format(dateFormat)+"] "+event+" "+initiator+" "+message+"\n");   // TODO: QA @ big data

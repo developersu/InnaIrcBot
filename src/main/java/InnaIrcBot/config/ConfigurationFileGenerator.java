@@ -147,6 +147,9 @@ public class ConfigurationFileGenerator {
         channelMainJoinCloneControlSection.put("pattern", "^.+[0-9]+?!.*$");
         channelMainJoinFloodControlSection.put("time frame", 0);
 
+        Ini.Section linksHeaderParser = channelMainSection.addChild("ParseLinksTitles");
+        linksHeaderParser.put("enable", true);
+
         ini.store(configurationFile);
     }
 }

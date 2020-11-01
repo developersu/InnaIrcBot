@@ -18,6 +18,8 @@ public class ConfigurationChannel {
     private int joinCloneControlTimeframe;
     private String joinCloneControlPattern;
 
+    private boolean parseLinksTitles;
+
     public ConfigurationChannel(
             boolean joinFloodControl,
             int joinFloodControlEvents,
@@ -25,7 +27,9 @@ public class ConfigurationChannel {
             boolean joinCloneControl,
             int joinCloneControlTimeframe,
             String joinCloneControlPattern,
-            List<String> rules){
+            boolean parseLinksTitles,
+            List<String> rules)
+    {
 
         parseRules(rules);
 
@@ -34,6 +38,8 @@ public class ConfigurationChannel {
 
         if (joinCloneControl)
             validateJoinCloneControl(joinCloneControlTimeframe, joinCloneControlPattern);
+
+        this.parseLinksTitles = parseLinksTitles;
     }
 
     private void parseRules(List<String> rules){
@@ -99,4 +105,6 @@ public class ConfigurationChannel {
     public boolean isJoinCloneControl() { return joinCloneControl; }
     public int getJoinCloneControlTimeframe() { return joinCloneControlTimeframe; }
     public String getJoinCloneControlPattern() { return joinCloneControlPattern; }
+
+    public boolean isParseLinksTitles() { return parseLinksTitles; }
 }

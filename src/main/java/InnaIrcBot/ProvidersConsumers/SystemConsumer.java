@@ -129,7 +129,7 @@ public class SystemConsumer implements Runnable{
                 IrcChannel ircChannel = channels.get(channelName);
                 if (ircChannel == null)
                     return;
-                ircChannel.getChannelQueue().add(eventNum+" "+sender+" "+message);
+                ircChannel.getChannelQueue().add(sender+" "+eventNum+" "+message);
                 break;
             case "NICK":
                 if (sender.startsWith(nick+"!")) {
