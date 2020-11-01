@@ -66,29 +66,30 @@ public class SystemConsumer implements Runnable{
                 String data = systemQueue.take();
                 String[] dataStrings = data.split(" :?",3);
                 //TODO: handle mode change
-                switch (dataStrings[1]){
-                    case "PRIVMSG":
-                        if (dataStrings[2].indexOf("\u0001") < dataStrings[2].lastIndexOf("\u0001")) {
-                            String sender = simplifyNick(dataStrings[0]);
-                            String message = dataStrings[2].substring(dataStrings[2].indexOf(":") + 1);
-                            systemCTCP.replyCTCP(sender, message);
+
+                if (dataStrings[0].equals("INNA")){
+                    String[] splitter;
+                    if (dataStrings.length > 2){                                 // Don't touch 'cuz it's important
+                        splitter = dataStrings[2].split(" ", 2);
+                        if (splitter.length == 2){
+                            handleSpecial(dataStrings[1], splitter[0], splitter[1]);
                         }
-                        else {
-                            commander.receiver(dataStrings[0], dataStrings[2].replaceAll("^.+?:", "").trim());
-                            writerWorker.log(dataStrings[1]+" "+dataStrings[0]+" :", dataStrings[2].replaceAll("^.+?:", "").trim());
-                        }
-                        break;
-                    case "INNA":
-                        String[] splitter;
-                        if (dataStrings.length > 2){                                 // Don't touch 'cuz it's important
-                            splitter = dataStrings[2].split(" ", 2);
-                            if (splitter.length == 2){
-                                handleSpecial(dataStrings[0], splitter[0], splitter[1]);
-                            }
-                        }
-                        break;
-                    default:
-                        handleNumeric(dataStrings[0], dataStrings[1], dataStrings[2]);
+                    }
+                    continue;
+                }
+                if ("PRIVMSG".equals(dataStrings[1])) {
+                    if (dataStrings[2].indexOf("\u0001") < dataStrings[2].lastIndexOf("\u0001")) {
+                        String sender = simplifyNick(dataStrings[0]);
+                        String message = dataStrings[2].substring(dataStrings[2].indexOf(":") + 1);
+                        systemCTCP.replyCTCP(sender, message);
+                    }
+                    else {
+                        commander.receiver(dataStrings[0], dataStrings[2].replaceAll("^.+?:", "").trim());
+                        writerWorker.log(dataStrings[1] + " " + dataStrings[0] + " :", dataStrings[2].replaceAll("^.+?:", "").trim());
+                    }
+                }
+                else {
+                    handleNumeric(dataStrings[0], dataStrings[1], dataStrings[2]);
                 }
             }
         }
@@ -107,8 +108,7 @@ public class SystemConsumer implements Runnable{
         IrcChannel ircChannel = channels.get(channelName);
         if (ircChannel == null)
             return;
-        String ircFormatterMessage = event+" "+nick+" "+channelName+" "+message;
-
+        String ircFormatterMessage = nick+" "+event+" "+channelName+" "+message;
         ircChannel.getChannelQueue().add(ircFormatterMessage);
     }
     //todo: handle nickserv messages somehow
