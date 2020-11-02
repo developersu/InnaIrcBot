@@ -15,4 +15,8 @@ public class LinksTitleManager {
         }
         return queue;
     }
+
+    public static void interrupt(){
+        thread.interrupt();
+    }
 }

@@ -1,5 +1,7 @@
 package InnaIrcBot;
 
+import InnaIrcBot.linkstitles.LinksTitleManager;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -17,19 +19,22 @@ public class ReconnectControl {
     }
 
     public static synchronized void notify(String server){
-        if (! serversList.getOrDefault(server, false))
+        if (! serversList.getOrDefault(server, false)) {
+            LinksTitleManager.interrupt();
             return;
+        }
 
         int count = serversReconnects.get(server);
 
         if (count > 5) {
             serversList.replace(server, false);
+            LinksTitleManager.interrupt();
             return;
         }
         count++;
         serversReconnects.put(server, count);
 
-        System.out.println("Main thread \"" + server + "\" removed from observable list after unexpected finish.\n");
+        System.out.println("Main thread \"" + server + "\" removed from observable list after unexpected finish ("+count+").\n");
         ConnectionsBuilder.getConnections().startNewConnection(server);
     }
 }

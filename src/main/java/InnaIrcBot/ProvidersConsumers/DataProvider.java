@@ -117,8 +117,10 @@ public class DataProvider implements Runnable {
 
     private void close(){
         try {
-            systemConsumerThread.interrupt();
-            systemConsumerThread.join();
+            if (systemConsumerThread != null) {
+                systemConsumerThread.interrupt();
+                systemConsumerThread.join();
+            }
             StreamProvider.delStream(server);
             ReconnectControl.notify(server);
         }

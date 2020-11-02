@@ -70,7 +70,7 @@ public class ChanConsumer implements Runnable {
                 parse();
             }
         } catch (InterruptedException e){
-            System.out.println("ChanConsumer "+serverName+"/"+channelName+"Interrupted "+e.getMessage());
+            System.out.println("ChanConsumer "+serverName+"/"+channelName+" Interrupted ");
         }
     }
 

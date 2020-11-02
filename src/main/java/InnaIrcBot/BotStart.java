@@ -17,7 +17,6 @@ public class BotStart {
             }
             if (cli.hasOption("c") || cli.hasOption("configuration")){
                 final String[] arguments = cli.getOptionValues("configuration");
-                for (String a: arguments)
                 ConnectionsBuilder.buildConnections(arguments);
                 return;
             }
