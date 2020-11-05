@@ -80,9 +80,10 @@ class LinksTitleHandler implements Runnable{
             reader.close();
             connection.disconnect();
             line = stringBuffer.toString();
-            int from = line.indexOf("<title>")+7;
+            int from = line.indexOf("<title")+7;
             int till = line.indexOf("</title>");
             String title = line.substring(from, till);
+            title = title.substring(title.indexOf(">")+1);
 
             if (title.length() > 510)
                 title = title.substring(0, 510);

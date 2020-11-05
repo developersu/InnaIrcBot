@@ -186,7 +186,7 @@ public class SystemConsumer implements Runnable{
                 writerWorker.log(eventNum, message);
                 break;
             case "QUIT":  // TODO: Do something?
-                writerWorker.log(eventNum, message);
+                //writerWorker.log(eventNum, message);
                 break;
             case "375":
                 writerWorker.log("MOTD Start:", message.replaceAll("^.+?:", ""));
