@@ -45,7 +45,7 @@ public class DataProvider implements Runnable {
             sendUserNickAndIdent();
 
             startLoop();
-
+            System.out.println("ENDED");
         } catch (Exception e){
             System.out.println("DataProvider exception: "+e.getMessage());
         }
@@ -83,6 +83,7 @@ public class DataProvider implements Runnable {
     private void startLoop() throws Exception{
         String rawMessage;
         while ((rawMessage = mainReader.readLine()) != null) {
+            System.out.println(rawMessage);
             if (rawMessage.startsWith(":")) {
                 handleRegular(rawMessage.substring(1));
             }

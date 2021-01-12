@@ -19,6 +19,11 @@ public class StreamProvider {
             }
         } catch (IOException e){
             System.out.println("Internal issue: StreamProvider->writeToStream() caused I/O exception:\n\t"+e.getMessage());
+        } catch (NullPointerException npe){
+            System.out.println("Internal issue: StreamProvider->writeToStream() caused NullPointerException exception:\n"
+                    +"Server: "+server
+                    +"\nMessage: "+message
+                    +"\n\t"+npe.getMessage());
         }
     }
     public static synchronized void setStream(String server, Socket socket) throws IOException{
