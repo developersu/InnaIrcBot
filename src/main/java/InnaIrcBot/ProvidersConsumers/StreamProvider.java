@@ -22,8 +22,8 @@ public class StreamProvider {
         } catch (NullPointerException npe){
             System.out.println("Internal issue: StreamProvider->writeToStream() caused NullPointerException exception:\n"
                     +"Server: "+server
-                    +"\nMessage: "+message
-                    +"\n\t"+npe.getMessage());
+                    +"\nMessage: "+message);
+            npe.printStackTrace();
         }
     }
     public static synchronized void setStream(String server, Socket socket) throws IOException{

@@ -104,7 +104,7 @@ public class ConfigurationFile {
         if (channelRules == null)
             channelRules = new ArrayList<>();
 
-        Ini.Section joinFloodControlSection = channelSection.getChild("rules");
+        Ini.Section joinFloodControlSection = channelSection.getChild("JoinFloodControl");
 
         boolean joinFloodControl = joinFloodControlSection.get("enable", boolean.class);
         int joinFloodControlEventsNumber = -1;
@@ -114,7 +114,7 @@ public class ConfigurationFile {
             joinFloodControlTimeFrame = joinFloodControlSection.get("time frame", int.class);
         }
 
-        Ini.Section joinCloneControlSection = channelSection.getChild("rules");
+        Ini.Section joinCloneControlSection = channelSection.getChild("JoinCloneControl");
 
         boolean joinCloneControl = joinCloneControlSection.get("enable", boolean.class);
 

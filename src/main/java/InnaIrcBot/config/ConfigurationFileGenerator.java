@@ -145,7 +145,7 @@ public class ConfigurationFileGenerator {
         Ini.Section channelMainJoinCloneControlSection = channelMainSection.addChild("JoinCloneControl");
         channelMainJoinCloneControlSection.put("enable", false);
         channelMainJoinCloneControlSection.put("pattern", "^.+[0-9]+?!.*$");
-        channelMainJoinFloodControlSection.put("time frame", 0);
+        channelMainJoinCloneControlSection.put("time frame", 0);
 
         Ini.Section linksHeaderParser = channelMainSection.addChild("ParseLinksTitles");
         linksHeaderParser.put("enable", true);
