@@ -104,26 +104,35 @@ public class ConfigurationFile {
         if (channelRules == null)
             channelRules = new ArrayList<>();
 
-        Ini.Section joinFloodControlSection = channelSection.getChild("JoinFloodControl");
-
-        boolean joinFloodControl = joinFloodControlSection.get("enable", boolean.class);
+        boolean joinFloodControl = false;
         int joinFloodControlEventsNumber = -1;
         int joinFloodControlTimeFrame = -1;
-        if (joinFloodControl){
-            joinFloodControlEventsNumber = joinFloodControlSection.get("join number", int.class);
-            joinFloodControlTimeFrame = joinFloodControlSection.get("time frame", int.class);
-        }
+        try {
+            Ini.Section joinFloodControlSection = channelSection.getChild("JoinFloodControl");
 
-        Ini.Section joinCloneControlSection = channelSection.getChild("JoinCloneControl");
+            joinFloodControl = joinFloodControlSection.get("enable", boolean.class);
+            joinFloodControlEventsNumber = -1;
+            joinFloodControlTimeFrame = -1;
+            if (joinFloodControl){
+                joinFloodControlEventsNumber = joinFloodControlSection.get("join number", int.class);
+                joinFloodControlTimeFrame = joinFloodControlSection.get("time frame", int.class);
+            }
+        } catch (NullPointerException ignore) {}
 
-        boolean joinCloneControl = joinCloneControlSection.get("enable", boolean.class);
-
+        boolean joinCloneControl = false;
         int joinCloneControlTimeFrame = -1;
         String joinCloneControlPattern = "";
-        if (joinCloneControl){
-            joinCloneControlTimeFrame = joinCloneControlSection.get("time frame", int.class);
-            joinCloneControlPattern = joinCloneControlSection.getOrDefault("pattern", "");
-        }
+        try {
+            Ini.Section joinCloneControlSection = channelSection.getChild("JoinCloneControl");
+
+            joinCloneControl = joinCloneControlSection.get("enable", boolean.class);
+            joinCloneControlTimeFrame = -1;
+            joinCloneControlPattern = "";
+            if (joinCloneControl){
+                joinCloneControlTimeFrame = joinCloneControlSection.get("time frame", int.class);
+                joinCloneControlPattern = joinCloneControlSection.getOrDefault("pattern", "");
+            }
+        } catch (NullPointerException ignore) {}
 
         Profile.Section parseLinksTitlesSection = channelSection.getChild("ParseLinksTitles");
 
