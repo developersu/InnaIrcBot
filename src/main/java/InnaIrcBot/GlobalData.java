@@ -1,7 +1,7 @@
 package InnaIrcBot;
 
 public class GlobalData {
-    private static final String version = "InnaIrcBot v0.9 \"Литке\"";
+    private static final String version = "InnaIrcBot v0.9.1 \"Литке\"";
     public static synchronized String getAppVersion(){
         return String.format("%s, %s %s %s", version,
                 System.getProperty("os.name"),

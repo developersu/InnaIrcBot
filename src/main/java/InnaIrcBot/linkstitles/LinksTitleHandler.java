@@ -88,7 +88,7 @@ class LinksTitleHandler implements Runnable{
             if (title.length() > 510)
                 title = title.substring(0, 510);
 
-            StreamProvider.writeToStream(server, "PRIVMSG "+ channel +" :"+title);
+            StreamProvider.writeToStream(server, "PRIVMSG "+ channel +" :\""+title+"\"");
         } catch (Exception e){
             e.printStackTrace();
         }
