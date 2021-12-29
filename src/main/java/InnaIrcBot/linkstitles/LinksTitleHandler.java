@@ -70,11 +70,20 @@ class LinksTitleHandler implements Runnable{
             );
 
             StringBuilder stringBuffer = new StringBuilder();
+            //stringBuffer.setLength();
             String line;
+            int semaphore = 0;
             while ((line = reader.readLine()) != null) {
-                stringBuffer.append(line);
-                if (line.contains("</title>")) {
-                    break;
+                if (semaphore == 1) {
+                    stringBuffer.append(line);
+                    if (line.contains("</title>")) {
+                        break;
+                    }
+                    continue;
+                }
+                if (line.contains("<title>")) {
+                    semaphore = 1;
+                    stringBuffer.append(line);
                 }
             }
             reader.close();

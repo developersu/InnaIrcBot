@@ -288,7 +288,7 @@ public class PrivateMsgCommander {       // TODO: add black list: add users afte
     private void unban(String chanel, String user){
         cmode(chanel, "-b", simplifyNick(user)+"*!*@*");
         if (user.contains("@")){
-            cmode(chanel, "-b", "*!*@"+user.replaceAll("^.+@",""));
+            cmode(chanel, "-b", user);
         }
     }
     private void kickban(String chanel, String user, String reason){
