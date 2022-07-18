@@ -1,5 +1,7 @@
 # InnaIrcBot
 
+[![Build Status](https://ci.redrise.ru/api/badges/desu/innaircbot/status.svg)](https://ci.redrise.ru/desu/innaircbot)
+
 InnaIrcBot is IRC bot.
 
 _Pet-project created to learn Java in action_ 

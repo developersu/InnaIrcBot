@@ -10,6 +10,7 @@
     <name>InnaIrcBot</name>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.build.timestamp.format>yyyyMMdd.HHmmss</maven.build.timestamp.format>
     </properties>
 
     <dependencies>
@@ -58,6 +59,7 @@
         </dependency>
     </dependencies>
     <build>
+        <finalName>${project.artifactId}-${project.version}-${maven.build.timestamp}</finalName>
     <plugins>
     <!-- ====================================================== -->
         <plugin>
@@ -105,6 +107,7 @@
                 <descriptorRefs>
                     <descriptorRef>jar-with-dependencies</descriptorRef>
                 </descriptorRefs>
+                <appendAssemblyId>false</appendAssemblyId>
             </configuration>
             <executions>
                 <execution>
