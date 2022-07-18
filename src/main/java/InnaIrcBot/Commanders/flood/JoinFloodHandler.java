@@ -66,7 +66,7 @@ public class JoinFloodHandler implements EventHandler {
         return fistJoinTime;
     }
     private void kickBanUser(String user){
-        StreamProvider.writeToStream(server,"PRIVMSG "+ channel +" :"+user+": join flood ("+ joinMaxNumber +" connections in "+timeFrameInSeconds+" seconds).\n");
+        StreamProvider.writeToStream(server,"PRIVMSG "+ channel +" :"+user+": join flood ("+ joinMaxNumber +" connections in "+timeFrameInSeconds+" seconds).");
         StreamProvider.writeToStream(server,"MODE "+ channel +" +b "+user+"!*@*"); // TODO: consider other ban methods
     }
 
