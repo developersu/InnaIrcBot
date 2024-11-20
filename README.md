@@ -1,6 +1,6 @@
 # InnaIrcBot
 
-[![Build Status](https://ci.redrise.ru/api/badges/desu/innaircbot/status.svg)](https://ci.redrise.ru/desu/innaircbot)
+[![status-badge](https://ci.redrise.ru/api/badges/8/status.svg)](https://ci.redrise.ru/repos/8)
 
 InnaIrcBot is IRC bot.
 
